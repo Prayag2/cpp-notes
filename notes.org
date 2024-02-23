@@ -3,6 +3,7 @@
 :END:
 #+title: cpp-notes
 #+SETUPFILE: ../themes/org/theme-readtheorg.setup
+#+EXPORT_FILE_NAME: index.html
 
 * Compiler
 ** Optimizations
