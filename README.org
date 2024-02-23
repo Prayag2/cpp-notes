@@ -1,5 +1,3 @@
-#+title: CPP Notes
-
 * CPP Notes
 - These are my personal C++ notes that I wrote while learning C++ from [[https://learncpp.com/][learncpp]].
 - Some sections have been skipped like basic knowledge about functions or things that I already know about.
