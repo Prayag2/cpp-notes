@@ -1,0 +1,10 @@
+#+title: CPP Notes
+
+* CPP Notes
+- These are my personal C++ notes that I wrote while learning C++ from [[https://learncpp.com/][learncpp]].
+- Some sections have been skipped like basic knowledge about functions or things that I already know about.
+** Read Notes
+- You may directly view the ~notes.org~ file or visit [[https://prayag2.github.io/cpp-notes]] for a better experience.
+- The notes are converted to html from org-mode using ~org-html-export-to-html~ function in Emacs.
+** License
+- These notes are licensed under the GNU General Public License V3.
