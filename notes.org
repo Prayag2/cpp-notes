@@ -1,0 +1,2100 @@
+:PROPERTIES:
+:ID:       9c9068cc-7e0e-4744-a013-07897991f24a
+:END:
+#+title: cpp-notes
+#+SETUPFILE: ../themes/org/theme-readtheorg.setup
+
+* Compiler
+** Optimizations
+You can use the ~-ggdb~ flag to compile in debug mode and ~-O2 -DNDEBUG~ to compile with the best optimizations.
+** Extensions
+Disable compiler-specific extensions and strictly follow the C++ standard by adding the ~-pedantic-errors~ flag.
+** Enable Warnings
+You should enable warnings for the best learning experience.
+Enable them using- ~-Wall -Weffc++ -Wextra -Wconversion -Wsign-conversion~
+To treat warnings as errors, add ~-Werror~ flag.
+** Version Code Names
+| Version | Code Name Before Release |
+| C++11   | c++1x                    |
+| C++14   | c++1y                    |
+| C++17   | c++1z                    |
+| C++20   | c++2a                    |
+| C++23   | c++2b                    |
+
+Compiler flags are ~-std=c++11~, ~-std=c++14~, ~-std=c++17~, ~-std=c++20~, ~-std=c++2b~
+* Basics
+** Statements
+A statement is an instruction in a computer program that tells the computer to perform an action.
+1. Declaration Statements
+2. Jump Statements
+3. Expression Statements
+4. Compound Statements
+5. Selection Statements (Conditionals)
+6. Iteration Statements
+7. Try Blocks
+** Variable Assignment
+1. Assignment
+   When variables are assigned using the ~=~ operator, value on the right hand side is copied to the variable on the left hand side, known as /copy assignment/.
+2. Initialization
+   1. Default Initialization
+      No initial value is provided.
+   2. Copy Initialization
+      Initializer is provided after equal sign.
+      Use of this is discouraged because it is considered inefficient.
+      ~int a = 5;~
+   3. Direct Initialization
+      Initializer is provided inside parenthesis.
+      Use of this is also discouraged, because it is confusing to read and is superseded by list initialization.
+      ~int a(5);~
+   4. List Initialization
+      Modern way. It does not allow narrow conversions because narrow conversions can cause data loss. Introduced in C++17.
+      #+begin_src C++
+      int a {5}; // direct list initialization
+      int a = {5}; // copy list initialization
+      int a{}; // value list initialization
+      int a{4.5} // ERROR while a(4.5) or a = 4.5 won't give any error
+      #+end_src 
+
+*** The Maybe Unused Attribute
+If we don't want the compiler to complain about unused variables, we can define variables with ~[[maybe_unused]]~.
+This was introduced in C++17.
+#+begin_src C++
+[[maybe_unused]] float pi {3.14};
+#+end_src
+
+** Implementation Defined Behavior
+Implementation-defined behavior means the behavior of some syntax is left up to the implementation (the compiler) to define. Such behaviors must be consistent and documented, but different compilers may produce different results.
+One example of this is using the ~sizeof~ operator. It will product different results on different platforms.
+
+** Identifier Naming Conventions
+1. Variable names should begin with lowercase characters.
+2. Function names should begin with lowercase characters.
+3. Identifier names starting with capital letters represent user defined types.
+4. ~camelCase~ or ~snake_case~ both are fine but stay consistent.
+5. You may mix them like ~snake_case~ for variable names and ~camelCase~ for function names.
+6. Do not start names with underscore ~_~ (bad practice but not impossible).
+
+** Literals and Operators
+A literal is a constant value inserted directly in the source code.
+#+begin_src C++
+int a = 5;
+std::cout << a << std::endl;  // a is a variable not a literal constant
+std::cout << 10 << std::endl; // 10 is a literal constant
+#+end_src
+
+Operators perform operations on its inputs and return an output.
+The number of inputs an operator can take is called its *arity*.
+Some operators like ~throw~ and ~delete~ do not return any value.
+Operators which are mainly used for their side effects like ~x = 5~ always return their left operand (~x~ in this case).
+For example, ~x = y = 5~ is the same as writing ~x = (y = 5)~.
+
+** Expressions
+Expressions are like phrases in English, they are part of statements just like phrases are part of sentences.
+Expressions do not end with a semi-colon and they cannot be executed themselves.
+Some examples of expressions-
+#+begin_src C++
+a = 5              // has a side-effect of assigning "a" to 5 and evaluates to "a"
+5 + 6              // evaluates to 11
+"Hello, World!"    // evaluates to itself
+std::cout << "Hey" // evaluates to std::cout
+#+end_src
+Ending an expression with a semi-colon ~;~ will cause the statement to execute properly and such expressions are called *Expression Statements*.
+Sub-expressions are expressions used as operands in other expressions.
+Compound expressions have two or more operators like ~x = 5 + 3~ has two operators, ~=~ and ~+~.
+* Functions and Files
+** Return values
+The main function can return integers to specify if the program ran successfully or not.
+Two macros, ~EXIT_SUCCESS~ and ~EXIT_FAILURE~ are defined in the ~cstdlib~.
+#+begin_src C++
+#include <cstdlib>
+
+int main() {
+  return EXIT_SUCCESS;
+}
+#+end_src
+A value defining function which does not return any value will produce undefined results.
+** Parameters and Arguments
+- Parameters are defined in the function header and arguments are passed when calling it.
+- If you have a parameter that is no longer used in the body but can't remove the corresponding argument from all function calls, you can just remove the identifier-
+  #+begin_src C++
+  void test(int /*name*/) {
+    // indentifier removed from parameter list
+    // to avoid breaking previous function calls
+    // and prevent unused parameter warning
+  }
+  #+end_src 
+  #+begin_quote
+
+  IMPORTANT!
+  Note that in clang, arguments are parsed from left to right while in g++, arguments are parsed from right to left!
+  #+end_quote
+** The One Definition Rule
+1. Within a file, each function, variable, type or template can only have one definition (except variables in different local scopes) (violation causes compile error)
+2. With a program (multiple files), each variable can have only one definition (violation causes linker error)
+3. Types, templates, inline functions, and inline variables are allowed to have duplicate definitions in different files, so long as each definition is identical (violation causes undefined behaviour).
+** Namespaces
+- A namespace provides a scope region called the namespace scope which means that any thing defined in that scope won't be mistaken for anything else with the same name defined in some other namespace.
+- Only declarations and definitions can appear in a namespace.
+- The ~::~ operator is called the *scope resolution operator*. It's left operand is the namespace name (if blank, global is used) and the right operator is the symbol.
+- When an identifier uses the ~::~ operator, it's called a qualified name.
+- Using ~using namespace <name>~ is considered bad practice since it can lead to many conflicts in the future.
+** Preprocessor
+- A preprocessor is a /program/ which makes various changes to the code file before compiling it. For example, stripping out comments, making sure the each file ends with a newline character etc, evaluating the *preprocessor directives*, etc..
+- It does not make changes to the original files, instead it creates temporary files for this called "translation units".
+- The translation unit is what is actually compiled by the compiler.
+*** Preprocessor Directives
+- These are statements that begin with a ~#~ and end with a newline.
+- They have their own syntax of doing things.
+**** Include Directive
+Includes header files - ~#include <iostream>~
+**** Define Directive
+- Used to define function macros or object macros.
+- Function macros are not considered unsafe.
+- Object-like macros are no longer used in favour of better alternatives.
+  #+begin_src C++
+// Replace all occurance of NOTHING with nothing
+#define NOTHING
+
+// Replace all occurances of PI with 3.14
+#define PI 3.14
+  #+end_src 
+**** Conditional Directives
+This includes the ~ifdef~, ~ifndef~ and ~endif~ directives.
+*** Header Files
+- Header files must not contain definitions.
+- It is a good practice for code files to #include their paired header file (if one exists), this will help the compiler catch errors at compile time instead of link time.
+- Many useful C libraries are now renamed in C++, for example, ~stdlib.h~ is named ~cstdlib~ in C++.
+- The /bad/ way to include header files is to use relative paths in the ~#include~ directive. For example, ~#include "../myfile.h"~.
+- The better way is to specify the ~include directory~ to the compiler using the ~-I~ flag- ~g++ main.cpp -I/src/includes -o main~. There is no space after ~-I~ in the command.
+*** Header Guards
+Used to prevent duplication definitions when including multiple header files.
+#+begin_src C++
+#ifndef FUNCTIONS_H
+#define FUNCIONS_H
+{...}
+#endif
+#+end_src
+
+- You can also use ~#pragma once~ in modern compilers instead of the above header guards, but it's not in the C++ standard and some compilers may not support it.
+* Debugging
+** Some Debugging Tactics
+1. Comment out code
+2. Use ~std::cerr~ instead of ~std::cout~ because ~std::cerr~ is unbuffered so output is instant.
+3. Printing values.
+Using debug statements isn't recommended since they can clutter your code.
+** Using a debugger
+*** Step Into
+Execute the next command and pause.
+If the next command is a function call, move to the top of the function.
+*** Step Over
+Execute the next command and pause.
+If the next command is a function call, execute the entire function at once.
+*** Step Out
+Execute all remaining lines in the current function and pause.
+*** Run to Cursor
+Execute the program upto the line the cursor is in and pause.
+*** Continue
+Continue running the program normally.
+*** Breakpoints
+Execute the program upto the breakpoint and pause.
+* Data Types and Related Stuff
+** Standard Integers
+Since the size of ~int~ is different on different compilers on different platforms, standard int was declared in the ~cstdint~ library.
+#+begin_src C++
+#include <cstdint>
+
+int main() {
+  std::int8_t one; // 1 byte integer
+  std::uint8_t two; // 1 byte unsigned integer
+  std::int16_t three; // 2 byte integer
+  std::uint16_t four; // 2 byte unsigned integer
+  std::int32_t five; // 4 byte integer
+  std::uint32_t six; // 4 byte unsigned integer
+  std::int64_t seven; // 8 byte integer
+  std::uint64_t eight; // 8 byte unsigned integer
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+The above may be slower on some hardware. For example, 32 bit integers may be slower than 64 bit integers on a 64bit CPU so the following types were created:
+#+begin_src C++
+#include <cstdint>
+
+int main() {
+  std::int_fast32_t a; // will give the fastest integer having atleast 32 bits
+  std::int_least32_t b; // will give the smallest integer having atleast 32 bits
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+#+begin_quote
+
+Note that in many compilers, ~int_fast8_t~ and ~int_least8_t~ behave like ~char~ instead of integer values so prefer using the 16bit versions. So, if you try to print a variable of type ~int_fast8_t~ with the value 65 (for example), it will print A instead!!
+#+end_quote
+** ~size_t~
+- This type is used to represent size or length of objects.
+- The data type of the value returned by the ~sizeof~ operator is also ~std::size_t~.
+- It is guaranteed to be unsigned and has the size of the largest possible integer the machine can hold.
+- Any object with a size larger than the largest value an object of type ~std::size_t~ can hold is considered ill-formed.
+** Floating Point Precision
+- By default, ~std::cout~ displays only upto 6 significant digits of floating point numbers. You can change the precision by using ~std::cout << std::setprecision(<any number>)~.
+- Prefer ~double~ over ~float~ for better precision.
+** Rounding Errors in Decimals
+- In binary, a simple decimal number like 0.1 is represented in an infinite sequence 0.00011001100... causing it to be less precise.
+  #+begin_src C++ :flags -std=c++17
+  #include <iostream>
+  #include <iomanip>
+
+  int main() {
+    double a{0.1};
+    std::cout << std::setprecision(20);
+    std::cout << a << std::endl;
+
+    double b{};
+    b = 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1; // should be equal to 1.0
+    std::cout << b << std::endl;
+
+    if (a == b) std::cout << "YES";
+    else std::cout << "NO";
+    return 0;
+  }
+  #+end_src 
+
+  #+RESULTS:
+  |                0.1 |
+  | 0.9999999999999999 |
+  |                 NO |
+** NaN and Infinity
+#+begin_src C++ :flags -std=c++17
+#include <iostream>
+
+int main() {
+  double zero {0.0};
+  std::cout << 5.0/zero << std::endl; // outputs inf
+  std::cout << zero/zero << std::endl; // outputs nan
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+|  inf |
+| -nan |
+** Boolean Values
+- No need to import ~stdbool~ like in C to use ~true~ and ~false~.
+- Sending ~true~ and ~false~ values to stdout prints 0 and 1 instead.
+- To print true and false instead, do this-
+  #+begin_src C++
+  #include <iostream>
+
+  int main() {
+    bool a {false};
+    bool b {!a};
+    std::cout << a << " " << b << std::endl;
+    std::cout << std::boolalpha; // causes bools to print as "true" or "false"
+    std::cout << a << " " << b << std::endl;
+    return 0;
+  }
+  #+end_src
+
+  #+RESULTS:
+  |     0 |    1 |
+  | false | true |
+** Explicit Type Conversions
+- Unlike C, where we convert types using ~(<type>) variable~ to cast to different types, in C++, we use ~static_cast~ operator.
+  #+begin_src C++
+  #include <iostream>
+
+  void print(double x) {
+    std::cout << x << std::endl;
+  }
+
+  int main() {
+    int a{5};
+    print(static_cast<double>(a));
+    return 0;
+  }
+  #+end_src
+
+  #+RESULTS:
+  : 5
+
+  #+begin_quote
+  
+The ~static_cast~ operator will produce undefined behavior if the value being converted doesn’t fit in range of the new type.
+  #+end_quote
+** Hexadecimal, Octal and Binary Literals
+You may use these decimals by prefixing the following-
+- ~0x~ for hexadecimal, eg- ~int a{0x1F}~
+- ~0~ for octal, eg- ~int a{012}~
+- ~0b~ for binary, eg- ~int a{0b1100011}~ (c++14 onwards)
+By default, ~std::cout~ outputs values in decimals.
+You can specify the output type using-
+#+begin_src C++
+#include <iostream>
+#include <bitset> // for std::bitset
+
+int main() {
+  int x{69420};
+  // Decimal
+  std::cout << x << std::endl;
+
+  // Octal
+  std::cout << std::oct;
+  std::cout << x << std::endl;
+
+  // Hexadecimal
+  std::cout << std::hex;
+  std::cout << x << std::endl;
+
+  // Binary
+  std::cout << std::bitset<16>{0b10110} << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+|  69420 |
+| 207454 |
+|  10f2c |
+|  10110 |
+
+In C++20 and C++23, better options are available-
+#+begin_src C++ :flags -std=c++2a
+#include <iostream>
+#include <format> // C++20
+// #include <print> // C++23
+
+int main() {
+  std::cout << std::format("{:b}\n", 0b1100101);
+  std::cout << std::format("{:#b}\n", 0b1100101);
+  // std::print("{:#b}\n", 0b1100101); C++23
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+* Constants and Strings
+** Constant Expressions
+An expression that contains only compile time constants.
+#+begin_src C++
+const int a = { 5 + 7 }; // Will be evaluated at compile-time
+int a = { 5 + 7 }; // Might be evaluated at runtime, depends on the compiler
+#+end_src
+
+Using ~const~ can let the compiler know that the variable will absolutely /not/ change whatsoever, so it can optimize it!
+
+#+begin_quote
+
+Only const /integral/ variables with a constant expression initializer are compile-time constants.
+So, doubles or floats do not count.
+Types like char, bool, int, long, unsigned long etc can be considered.
+#+end_quote
+
+- It is sometimes very hard to distinguish whether an expression evaluates to a compile-time constant or not, so we can use ~constexpr~ keyword to tell the compiler that it's a compile time constant (using ~const~ doesn't guarantee it because it just means that the variable's value cannot be changed).
+#+begin_src C++
+constexpr int a { 5 + 7 }; // Will be evaluated at compile-time instead of run-time
+#+end_src 
+** The Inline Keyword
+- Every function call has a cost. Whenever a function call is made, the CPU has to save the current state of the program, jump to the function, execute it, and then jump back to the original location and restore the state. This is called function call overhead.
+- Inline functions are functions whose definition is expanded in-place instead of being called. This reduces the function call overhead.
+- The ~inline~ keyword just suggests the compiler to make the function inline, it is not guaranteed to do so.
+- Inline functions perform better when they are small and are called frequently.
+- Inline functions are *allowed* to be defined in multiple translation units in modern C++!
+- Every inline definition must be identical and are mostly defined in header files.
+  
+#+begin_src C++
+inline is_even(int x) {
+  return x % 2 == 0;
+}
+#+end_src 
+** ~constexpr~ and ~consteval~
+- As stated above, ~constexpr~ is used to tell the compiler that a variable is a compile-time constant.
+- ~constexpr~ can be used with functions to tell the compiler that the function is a compile-time function.
+  #+begin_src C++
+constexpr int greater(int x, int y) {
+  return (x > y ? x : y);
+}
+  #+end_src 
+- If the parameters passed to a ~constexpr~ function are not compile-time constants, the function will be evaluated at run-time.
+- If the return value is not being used in a context where a compile-time constant is required, the function may or may not be evaluated at run-time.
+#+begin_src C++ :flags -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion
+#include <iostream>
+#include <type_traits> // for std::is_constant_evaluated
+
+constexpr int greater(int x, int y) {
+  return (x > y ? x : y);
+}
+
+int main() {
+  constexpr int p {greater(5, 6)}; // always a compile time constant
+  std::cout << p << std::endl;
+
+  std::cout << greater(5, 6) << std::endl; // may be a compile time constant
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 6 |
+| 6 |
+** Immediate Functions
+- We can force functions which /will/ be used in a context where a compile-time constant is required to be evaluated at compile-time using the ~consteval~ keyword.
+- Only available in C++20.
+#+begin_src C++ :flags -std=c++20
+#include <iostream>
+
+consteval bool getbigger(int a, int b) {
+  return (a > b ? a : b);
+}
+int main() {
+  constexpr int a{getbigger(5, 6)};
+  std::cout << a << std::endl; // ok
+
+  std::cout << getbigger(5, 6) << std::endl; // ok
+
+  int x {5}; // not constexpr
+  std::cout << getbigger(x, 6) << std::endl; // error
+  return 0;
+}
+#+end_src
+- These functions are compile-time functions so they aren't very flexible during run-time.
+- ~consteval~ and ~constexpr~ functions are implicitly ~inline~ because the compiler needs to see the full definition at all times where the function is called.
+** Strings
+- C like strings are avoided because they are hard to work with and can be unsafe.
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+int main() {
+  std::string name {"Prayag"};
+  name = "Prayag Jain"; // can be reassigned
+  std::cout << name << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: Prayag Jain
+- You can use ~std::getline()~ to read strings in C++.
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+int main() {
+  std::string str;
+  std::cout << "Enter name: ";
+
+  // std::cin >> std::ws is an expression which ultimately returns std::cin
+  std::getline(std::cin >> std::ws, str);
+
+  std::cout << "Hi there, " << str << "!" << std::endl;
+  return 0;
+}
+#+end_src
+- ~std::ws~ is an input manipulator which allows getline to ignore any leading whitespace characters already present in the input buffer.
+- ~std::ws~ is not preserved across calls so it must be used with every getline call.
+- Use ~str.length()~ or ~std::ssize(str)~ (defined in ~<string>~) to get the length of a string named ~str~.
+- Initializing using ~std::string~ is expensive, so do not pass them by value in functions.
+- Normal string literals with double quotes around them are C-Style string literals, E.g. ~"hello"~.
+- Using the suffix ~std::string_literals::s~ will form an ~std::string~ literal, E.g. ~"hello"std::string_literals::s~.
+** ~std::string_view~
+- Whenever an ~std:string~ is initialized, the string literal provided is copied into the string object (expensive operation).
+- Even in functions, when an ~std::string~ is passed by value, it is copied into the function parameter (expensive operation).
+- ~std::string_view~ is a lightweight alternative to ~std::string~.
+- Always prefer ~std::string_view~ over ~std::string~ unless you need to modify the string.
+- It lives under the ~<string_view>~ header.
+- Assigning a new string to a ~std::string_view~ will not change the original string, it will just point to the new string.
+- You can use the ~std::string_view_literals::sv~ suffix to form a ~std::string_view~ literal.
+- Unlike ~std::string~, ~std::string_view~ can be used in ~constexpr~ contexts.
+- The ~remove_prefix(count)~ and ~remove_suffix(count)~ member functions can be used to remove a prefix or suffix from a string view (does NOT modify the referenced string, just the view).
+#+begin_src C++ :flags -std=c++20
+#include <string_view>
+#include <iostream>
+
+int main() {
+  std::string_view str {"Hello, World!"};
+  std::cout << str << std::endl;;
+
+  str.remove_prefix(2); // remove the first two characters
+  str.remove_suffix(2); // remove the last two characters
+  std::cout << str << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| Hello | World! |
+| llo   | Worl   |
+* Operators
+** Binary Division Operator
+- It's the ~/~ operator we use to divide its two operands.
+- If one of the operands is a float, the operator performs floating point division.
+- If both operands are integers, the operator performs integer division and removes the fractional part.
+- If we want to divide two integers and get a float, we can use the ~static_cast<type>~ operator to cast one of the operands to a float/double.
+** Comma Operator
+- ~x,y~ means first evaluate x, then evaluate y and finally return the value of y
+** Comparing floating points
+- Floating points are dangerous to compare using the traditional comparison operators like ~==~, ~<~ and ~>~ because of rounding errors.
+- Use the nearly equal algorithm which makes use of relative epsilons to check if two floating points are nearly equal.
+* Bit Manipulation
+- We can use individual bits in a byte to store boolean values or values that only depend on one bit.
+- When individual bits of an object are used as boolean values, we call them *bit flags*.
+#+begin_src C++
+#include <bitset>
+#include <iostream>
+
+int main() {
+  std::bitset<8> mybitset;
+  return 0;
+}
+#+end_src
+- We reading bits, we number them from right to left (starting from 0).
+** Key Member Functions
+*** ~test(position)~
+Used to test whether a bit is 0 or 1
+*** ~set(position)~
+Used to turn a bit "on" (to 1).
+*** ~reset(position)~
+Used to turn a bit "off" (to 0).
+*** ~flip(position)~
+Used to flip a bit (to 1 if it was 0 and to 0 if it was 1).
+
+#+begin_src C++ :flags -std=c++20
+#include <iostream>
+#include <bitset>
+
+int main() {
+  std::bitset<5> bits{0b10101};
+  std::cout << bits << '\n';
+
+  bits.set(1);
+  std::cout << bits << '\n';
+
+  bits.flip(3);
+  std::cout << bits << '\n';
+
+  bits.reset(0);
+  std::cout << bits << '\n';
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 10101 |
+| 10111 |
+| 11111 |
+| 11110 |
+*** ~size()~
+Returns the number of bits in the bitset.
+*** ~count()~
+Returns the number of bits set to 1.
+*** ~any()~
+Returns true if any bit is set to 1.
+*** ~none()~
+Returns true if none of the bits are set to 1.
+*** ~all()~
+Returns true if all of the bits are set to 1.
+** Bitwise Operators
+1. ~>>~ (right shift) (eg- 0011 >> 1 = 0001, 0011 >> 2 = 0000)
+2. ~<<~ (left shift) (eg- 0011 << 1 = 0110, 0011 << 2 = 1100)
+3. ~&~ (bitwise and) (eg- 0101 & 0011 = 0001)
+4. ~|~ (bitwise or) (eg- 0101 | 0011 = 0111) (only one bit should be 1 to be evaluated as true)
+5. ~^~ (bitwise xor) (eg- 0101 ^ 0011 = 0110)
+6. =~= (bitwise not) (eg- ~0101 = 1010)
+** Bit Masks
+- Used to block bitwise operators from modifying bits we don't want in a bitset, much like we use masking tape to block paint from touching certain parts of the product we're painting.
+- We can define bit masks as normal integers using either binary literals (c++14 or above) or by converting binary numbers to other literals such as decimals or hexadecimals.
+*** Testing Bits using Masks
+#+begin_src C++
+#include <iostream>
+#include <cstdint>
+
+int main() {
+  // creating masks
+  [[maybe_unused]] constexpr std::uint8_t mask1 {0b00000001};
+  [[maybe_unused]] constexpr std::uint8_t mask2 {0b00000010};
+  [[maybe_unused]] constexpr std::uint8_t mask3 {0b00000100};
+  [[maybe_unused]] constexpr std::uint8_t mask4 {0b00001000};
+  [[maybe_unused]] constexpr std::uint8_t mask5 {0b00010000};
+  [[maybe_unused]] constexpr std::uint8_t mask6 {0b00100000};
+  [[maybe_unused]] constexpr std::uint8_t mask7 {0b01000000};
+  [[maybe_unused]] constexpr std::uint8_t mask8 {0b10000000};
+
+  // testing if a bit at position 4 (starting from 0 from the right) is on or off using masks
+  std::uint8_t flags {0b01111011}; // arbitrary value
+  std::cout << "4th bit is " << (static_cast<bool>(flags & mask5) ? "on" : "off") << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 4th bit is on
+*** Setting and Resetting Bits using Masks
+#+begin_src C++
+#include <iostream>
+#include <cstdint>
+
+int main() {
+  // creating masks
+  [[maybe_unused]] constexpr std::uint8_t mask1 {0b00000001};
+  [[maybe_unused]] constexpr std::uint8_t mask2 {0b00000010};
+  [[maybe_unused]] constexpr std::uint8_t mask3 {0b00000100};
+  [[maybe_unused]] constexpr std::uint8_t mask4 {0b00001000};
+  [[maybe_unused]] constexpr std::uint8_t mask5 {0b00010000};
+  [[maybe_unused]] constexpr std::uint8_t mask6 {0b00100000};
+  [[maybe_unused]] constexpr std::uint8_t mask7 {0b01000000};
+  [[maybe_unused]] constexpr std::uint8_t mask8 {0b10000000};
+
+  std::uint8_t flags {0b01101101};
+
+  // turning flag 4 on
+  flags |= mask5; // using bitwise OR
+
+  // turning flag 0 off
+  flags &= ~mask1; // using bitwise AND and bitwise NOT
+
+  // flipping bit 7
+  flags ^= mask8; // using bitwise XOR
+
+  // flipping bits 3 and 2 simultaneously
+  flags ^= (mask4 | mask3);
+
+  std::cout << "The 4th bit is " << (static_cast<bool>(flags & mask5) ? "on" : "off") << std::endl;
+  std::cout << "The 0th bit is " << (static_cast<bool>(flags & mask1) ? "on" : "off") << std::endl;
+  std::cout << "The 7th bit is " << (static_cast<bool>(flags & mask8) ? "on" : "off") << std::endl;
+  std::cout << "The 3rd bit is " << (static_cast<bool>(flags & mask4) ? "on" : "off") << std::endl;
+  std::cout << "The 2rd bit is " << (static_cast<bool>(flags & mask3) ? "on" : "off") << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| The | 4th | bit | is | on  |
+| The | 0th | bit | is | off |
+| The | 7th | bit | is | on  |
+| The | 3rd | bit | is | off |
+| The | 2rd | bit | is | off |
+
+- You may use ~std::bitset~ instead of ~std::uint8_t~ too!
+** Example Hex Colour to RGBA Colour
+#+begin_src bash
+printf "FF03CA04" > /tmp/inp
+#+end_src
+
+#+RESULTS:
+
+#+begin_src C++ :cmdline < /tmp/inp :results value drawer
+#include <iostream>
+#include <bitset>
+#include <cstdint>
+
+int main() {
+  // defining masks
+  constexpr std::uint32_t redBits {0xFF000000};
+  constexpr std::uint32_t blueBits {0x00FF0000};
+  constexpr std::uint32_t greenBits {0x0000FF00};
+  constexpr std::uint32_t alphaBits {0x000000FF};
+
+  std::uint32_t hexVal {};
+  std::cin >> std::hex >> hexVal; // std::hex allows us to read in hex (input modifier)
+
+  // getting individual colours as integers
+  int red {static_cast<int>((hexVal & redBits) >> 24)};
+  int blue {static_cast<int>((hexVal & blueBits) >> 16)};
+  int green {static_cast<int>((hexVal & greenBits) >> 8)};
+  int alpha {static_cast<int>(hexVal & alphaBits)};
+
+  std::cout << "rgba(" << red << "," << blue << "," << green << "," << alpha << ")" << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+:results:
+rgba(255,3,202,4)
+:end:
+** Two's Complement
+- Signed integers are typically stored in two's complement format.
+- In two's complement, the most significant bit (left most bit) is used to represent the sign of the number.
+- 0 means positive and 1 means negative.
+- To convert a decimal number to a negative binary number, we invert all the bits and add 1.
+- Example, to convert -5 to binary, we first convert 5 to binary (0101) and then invert all the bits (1010) and add 1 (1011).
+- We add 1 because we need to represent 0 as 0000 and not 1111.
+* Namespaces 
+
+- A namespace provides a scope region called the namespace scope which means that any thing defined in that scope won't be mistaken for anything else with the same name defined in some other namespace.
+#+begin_src C++ :results value drawer
+#include <iostream>
+#include <string>
+
+void print(std::string x, int y) {
+  std::cout << x << y << std::endl;
+}
+
+namespace mynamespace {
+  int a {5};
+  void print(); // defining an arbitrary function in this namespace
+  void doSomething(int b) {
+    ::print("hello ", b); // use print from the global namespace instead of this namespace
+  }
+}
+
+int main() {
+  mynamespace::doSomething(mynamespace::a);
+  using namespace mynamespace;
+  doSomething(a);
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+:results:
+hello 5
+hello 5
+:end:
+#+begin_quote
+
+Multiple definitions of the same namespace is allowed in C++.
+#+end_quote
+- Nested namespaces can be accessed by doing something like ~namespaceOne::namespaceTwo::hello~.
+** Namespace Aliases
+#+begin_src C++
+#include <iostream>
+
+namespace Foo {
+  namespace Goo {
+    int a {5};
+  }
+}
+
+int main() {
+  namespace fg = Foo::Goo;
+  std::cout << fg::a << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5
+
+#+begin_quote
+
+Avoid deeply nested namespaces!
+#+end_quote
+* Scope, Duration and Lifetime
+- Scope is the region of code where an identifier is visible (global, local, namespace, block).
+- Duration specifies the start and end of the lifetime of an object (auto, static).
+- Lifetime is the time for which an object exists in memory.
+- Global variables have static duration by default.
+- Non constant integral global variables are initialized to 0 by default.
+** Name Hiding (Shadowing)
+- Whenever a name is defined in a scope, it hides any other name with the same name in the outer scope.
+- You should generally /avoid/ variable shadowing.
+- In g++, you can use the ~-Wshadow~ flag to get warnings about shadowing.
+** Internal Linkage
+- Linkage is the property of an identifier which specifies whether it can be used in other translation units.
+- There are three types of linkages-
+  1. External Linkage
+  2. Internal Linkage
+  3. No Linkage
+- Local variables have no linkage.
+- Non constant global variables have external linkage by default while constant global variables have internal linkage by default.
+- To make global variables have internal linkage, use the ~static~ keyword.
+- Functions have external linkage by default but can also be made to have internal linkage using the ~static~ keyword.
+#+begin_quote
+
+It is recommended to give internal linkage to all global variables and functions that are not used in other translation units.
+#+end_quote
+#+begin_src C++
+// Internal global variables definitions:
+static int g_x;          // defines non-initialized internal global variable (zero initialized by default)
+static int g_x{ 1 };     // defines initialized internal global variable
+
+const int g_y { 2 };     // defines initialized internal global const variable
+constexpr int g_y { 3 }; // defines initialized internal global constexpr variable
+
+// Internal function definitions:
+static int foo() {};     // defines internal function
+#+end_src
+** External Linkage
+- To make a variable or function have external linkage, use the ~extern~ keyword.
+- Global variables and functions have external linkage by default so you don't need to use the ~extern~ keyword.
+#+begin_quote
+
+If you want to define an uninitialized non-const global variable, do not use the extern keyword, otherwise C++ will think you’re trying to make a forward declaration for the variable
+#+end_quote
+- ~constexpr~ can be made to have external linkage by using the ~extern~ keyword however they can not be /forward declared/.
+#+begin_src C++
+// External global variable definitions:
+int g_x;                       // defines non-initialized external global variable (zero initialized by default)
+extern const int g_x{ 1 };     // defines initialized const external global variable
+extern constexpr int g_x{ 2 }; // defines initialized constexpr external global variable
+
+// Forward declarations
+extern int g_y;                // forward declaration for non-constant global variable
+extern const int g_y;          // forward declaration for const global variable
+extern constexpr int g_y;      // not allowed: constexpr variables can't be forward declared
+#+end_src
+** Non-constant Global Variables are Evil
+- They can be changed from anywhere in the program.
+#+begin_quote
+
+Dynamic initialization of global variables causes a lot of problems in C++. Avoid dynamic initialization whenever possible.
+#+end_quote
+- Prefer using namespaces to avoid name collisions.
+- In functions, prefer passing variables as parameters instead of using global variables.
+** Sharing Global Variables Across Files
+- You can create header files, define a namespace, define the constants as ~constexpr~ and then include the header file in all files where you want to use the constants.
+- This approach has some downsides-
+  1) If the header file is used in 20 files, the definitions will be duplicated 20 times and each file will have to be recompiled if the header file is changed.
+  2) If the constants are large, it will increase memory usage because of duplication!
+- Another approach is to define a namespace in a ~.cpp~ file, define the constants using ~extern const~ in the namespace, forward declare the constants in a ~.h~ header file and then include the header file in all files where you want to use the constants.
+- This approach also has some downsides-
+  1) These constants will now be considered compile-time only in the ~.cpp~ file in which they are defined because the linker will only see the forward declaration from the header file.
+** Global Constants as Inline Variables
+- For C++17 and above, you can use inline variables to define global constants.
+- These variables are better than macros because they are type safe and can be debugged.
+- They are better than global constants because they are not duplicated across files.
+- Prefer using them over the above two methods of sharing global variables across files.
+
+  ~constants.h~
+  #+begin_src C++
+#IFNDEF CONSTANTS_H
+#DEFINE CONSTANTS_H
+namespace constants {
+  inline constexpr double pi {3.14159};
+}
+#ENDIF
+  #+end_src
+** Static on local variables
+- Using the static keyword on local variables changes its duration to be created at the start of the program and destroyed at the end.
+- It is common to use the ~s_~ prefix on static variable identifiers.
+- You should avoid static local variables unless the variable never needs to be reset as this can cause confusion.
+** Summary
+| Type                                    | Example                         | Scope  | Duration  | Linkage  | Notes                        |
+| Local variable                          | ~int x;~                          | Block  | Automatic | None     |                              |
+| Static local variable                   | ~static int s_x;~                 | Block  | Static    | None     |                              |
+| Dynamic local variable                  | ~int* x { new int{} };~           | Block  | Dynamic   | None     |                              |
+| Function parameter                      | ~void foo(int x)~                 | Block  | Automatic | None     |                              |
+| External non-constant global variable   | ~int g_x;~                        | Global | Static    | External | Initialized or uninitialized |
+| Internal non-constant global variable   | ~static int g_x;~                 | Global | Static    | Internal | Initialized or uninitialized |
+| Internal constant global variable       | ~constexpr int g_x { 1 };~        | Global | Static    | Internal | Must be initialized          |
+| External constant global variable       | ~extern const int g_x { 1 };~     | Global | Static    | External | Must be initialized          |
+| Inline constant global variable (C++17) | ~inline constexpr int g_x { 1 };~ | Global | Static    | External | Must be initialized          |
+* Using Declarations
+** Qualified and unqualified names
+A qualified name is one which has been resolved using the namespace operator (~::~) or the member selection operators (~.~, ~->~).
+For example, ~std::cout~, ~std::pow(5, 3)~, ~student.name~ etc..
+** Using-declarations
+#+begin_src C++
+#include <iostream>
+
+int main() {
+  using std::cout; // specifying the exact object that we'd like to use
+  cout << "Hello World\n";
+  return 0;
+}
+#+end_src
+** Using-directives
+#+begin_src C++
+#include <iostream>
+
+int main() {
+  using namespace std; // importing the entire namespace into the current scope
+  return 0;
+}
+#+end_src
+
+#+begin_quote
+
+Prefer explicit namespaces over using-statements. Avoid using-directives whenever possible. Using-declarations are okay to use inside blocks.
+#+end_quote
+* Control Flow
+- The specific sequence of statements that the CPU executes is called the program's *execution path*.
+** Null Statements
+- Statements that just contain the semicolon ~;~.
+#+begin_src C++
+#include <iostream>
+
+int main() {
+  if (1)
+    ;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+** ~constexpr~ if statements
+- Consider the following code-
+  #+begin_src C++
+  #include <iostream>
+
+  int main() {
+    constexpr double pi {3.14};
+    if (pi == 3.14) {
+      std::cout << ("Hello World") << std::endl;
+    } else {
+      std::cout << ("Goodbye World") << std::endl; // This will never be printed
+    }
+    return 0;
+  }
+  #+end_src
+- The condition above is /always/ true.
+- This is wasteful at runtime so C++17 introduced constexpr if statements-
+  #+begin_src C++
+  #include <iostream>
+
+  int main() {
+    constexpr double pi {3.14};
+    if constexpr (pi == 3.14)
+      std::cout << "pi is 3.14" << std::endl;
+    else
+      std::cout << "pi is not 3.14" << std::endl;
+    return 0;
+  }
+  #+end_src
+
+  #+RESULTS:
+  : pi is 3.14
+** The ~[[fallthrough]]~ attribute
+- When using switch statements, if we do not use the ~break~ or ~return~ keyword, the cases following the matched case will also be executed which is known as a fallthrough.
+- This is not desired mostly but when it is, we can tell the compiler to avoid giving a warning by using the ~[[fallthrough]]~ attribute.
+#+begin_src C++ :flags -Wall -Werror -pedantic-errors -Weffc++ -Wconversion -Wsign-conversion -std=c++17
+#include <iostream>
+
+int main() {
+  switch (2) {
+  case 1:
+    std::cout << "1" << std::endl;
+    break;
+  case 2:
+    std::cout << "2" << std::endl;
+    [[fallthrough]];
+  case 3:
+    std::cout << "3" << std::endl;
+    break;
+  }
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 2 |
+| 3 |
+
+#+begin_quote
+
+Note that the semicolon used along with the ~[[fallthrough]]~ attribute is a ~null~ statement.
+#+end_quote
+** Halting Programs
+- You can halt a program using ~std::exit()~ from ~cstdlib~.
+- This function does not, however, clean up memory reserved for the local variables.
+- Always use the ~std::atexit(callback)~ function which runs the callback function provided to it whenever ~std::exit()~ has been called.
+#+begin_quote
+
+You should /never/ use halt functions explicitly unless there's no safe way to exit the program.
+#+end_quote
+* Randomness
+- Algorithms that simulate generating random numbers are called "Pseudo Random Number Generators (PRNGs)".
+- An initial value called the ~seed~ is provided to every PRNG to generate random numbers.
+- To further generate random numbers, the initial seed is modified by some mathematical calculations and then the new value is used.
+- The _state_ of an algorithm is the value that the stateful algorithm keeps.
+- An algorithm is considered to be stateful if it retains some information across calls.
+- When, for a PRNG, the size of the seed provided is less than the intended size of the state, the PRNG is said to be /underseeded/.
+- Underseeded PRNGs will produce low quality random numbers.
+** Built-in PRNGs in C++
+- In the ~<random>~ library, there are 6 PRNGs available for use (as of C++20).
+| Type name             | Family                                 |  Period | State size* | Performance | Quality | Should I use this?          |
+|-----------------------+----------------------------------------+---------+-------------+-------------+---------+-----------------------------|
+| ~minstd_rand~         | Linear congruential generator          |    2^31 | 4 bytes     | Bad         | Awful   | No                          |
+| ~minstd_rand0~        | Linear congruential generator          |    2^31 | 4 bytes     | Bad         | Awful   | No                          |
+| mt19937               | Mersenne twister                       | 2^19937 | 2500 bytes  | Decent      | Decent  | Probably (see next section) |
+| ~mt19937_64~         | Mersenne twister                       | 2^19937 | 2500 bytes  | Decent      | Decent  | Probably (see next section) |
+| ranlux24              | Subtract and carry                     |  10^171 | 96 bytes    | Awful       | Good    | No                          |
+| ranlux48              | Subtract and carry                     |  10^171 | 96 bytes    | Awful       | Good    | No                          |
+| knuth_b               | Shuffled linear congruential generator |    2^31 | 1028 bytes  | Awful       | Bad     | No                          |
+| default_random_engine | Any of above (implementation defined)  |  Varies | Varies      | ?           | ?       | No2                         |
+| rand()                | Linear congruential generator          |    2^31 | 4 bytes     | Bad         | Awful   | Nono                        |
+- We should only use the Mersenne twister PRNG out of all the other built-in methods (if you don't have the choice to use third party libraries).
+- ~mt19937~ generates 32 bit unsigned integers while ~mt19937_64~ generates 64 bit unsigned integers.
+#+begin_src C++
+#include <iostream>
+#include <random>
+
+int main() {
+  std::mt19937 mt{}; // initializing
+  std::cout << mt() << std::endl; // using mt() is the preferred way to call the mt.operator() method
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 3499211612
+- To generate numbers within a range with unbiased results (i.e. each number has an equal chance of being generated), we can use the ~std::uniform_int_distribution~ class.
+#+begin_src C++
+#include <iostream>
+#include <random>
+
+int main() {
+  std::mt19937 mt{};
+
+  std::uniform_int_distribution dice{1,6};
+
+  // printing a bunch of random numbers
+  for (int count {1}; count <= 40; count++) {
+    std::cout << dice(mt) << ' ';
+  }
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5 1 6 6 1 6 6 2 4 2 1 4 2 2 4 6 6 6 6 6 1 5 6 6 6 1 3 5 5 2 1 1 3 1 6 4 5 6 6 4
+- We can use ~std::chrono~ to seed the PRNG with the current time (it stores the time in "ticks" which is usually in nanoseconds or microseconds!).
+#+begin_src C++
+#include <iostream>
+#include <random>
+#include <chrono>
+
+int main() {
+  std::mt19937 mt{static_cast<std::mt19937::result_type>(std::chrono::steady_clock::now().time_since_epoch().count())};
+
+  std::uniform_int_distribution dice{1,6};
+
+  for (int i {1}; i <= 40; i++) {
+    std::cout << dice(mt) << ' ';
+  }
+}
+#+end_src
+
+#+RESULTS:
+: 1 4 1 6 6 4 1 6 3 5 5 1 4 1 1 3 5 5 4 5 4 1 5 6 5 2 6 3 4 6 1 5 2 1 2 1 4 1 2 3
+- You can also seed using the system's random device (recommended over system time)-
+#+begin_src C++
+#include <iostream>
+#include <random>
+
+int main() {
+  std::mt19937 mt{std::random_device{}()};
+
+  std::uniform_int_distribution dice{1,6};
+  for (int i {0}; i < 40; i++)
+    std::cout << dice(mt) << ' ';
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 2 1 2 1 6 4 5 1 6 2 2 1 2 3 1 3 1 3 2 3 3 2 4 3 1 3 5 6 5 2 6 5 5 1 3 1 2 1 2 6
+
+#+begin_quote
+
+~std::random_device~ also generates random numbers but should not be used as a PRNG because it is implementation defined, may not be available on all platforms, and might produce low quality results on different compilers.
+#+end_quote
+- The internal state of Mersenne twister is 624 bytes in size.
+- The seeds we provided above were only 4 bytes in size causing the PRNG to be heavily underseeded.
+- ~std::seed_seq~ can be used to provide a seed sequence to the PRNG.
+- We can provide as many random values to ~std::seed_seq~ as we want and it generate unbiased seed values with the required size for the PRNG.
+#+begin_src C++
+#include <iostream>
+#include <random>
+
+int main() {
+  std::random_device rd{};
+  std::seed_seq ss{rd(), rd(), rd(), rd(), rd(), rd(), rd(), rd()}; // 8 random integers
+  std::mt19937 mt{ss}; // initializing using the seed sequence
+
+  std::uniform_int_distribution dice{1,6};
+
+  for(int i {0}; i < 40; i++)
+    std::cout << dice(mt) << ' ';
+
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 4 3 4 2 5 4 2 6 2 5 5 1 1 3 2 4 5 6 6 6 5 5 5 2 3 3 2 2 1 4 4 6 4 4 2 4 1 6 5 6
+* Software Testing
+** Informal Testing
+- Informal testing is the process of testing a program by running it and observing its behaviour.
+- After writing a program, you just run it with a few different inputs and see if it works as expected.
+- We can write functions that test's the program's functions by comparing their outputs with expected results.
+- You can also use ~assert~ to check if a condition is true and if it isn't, the program will halt.
+** Code Coverage
+- Code coverage is a measure of how much of the code is executed when the program is executed while testing.
+- Similarly, the term *statement coverage* refers to the percentage of statements that are executed during testing.
+- *Branch coverage* refers to the percentage of branches that are executed during testing.
+- *Loop coverage* says that if you have a loop, you should test it with 0, 1, and 2 iterations. If it works for the second iteration, it will work for all other iterations.
+** Symantic Errors
+- Errors that occur when the program is running and are not caught by the compiler (logical type of errors).
+- Some semantic errors include:
+  - Division by zero
+  - Precision errors
+  - Comparison logical errors
+  - Not using blocks for if statements
+** Detecting and Handling Errors
+- Most of the time, errors are caused because the programmer made some faulty assumptions like the user will always enter a number when the program asks for a number, the student being look up will always be in the database, etc.
+** Handling String Input
+*** Error Case 1: Extraction succeeds but input is meaningless
+- For example, required input values were "y" or "n" but the input entered was "q".
+- Solving these is easy. Just use a while loop until the user enters one of the required values.
+*** Error Case 2: Input buffer already had some characters
+- In cases where the input buffer already had some items.
+- You can tell the compiler to clear the input buffer after taking input using ~std::cin.ignore(100, '\n')~.
+- The above method will clear 100 characters out of the buffer OR until the newline is encountered.
+- To ignore everything upto and including the ~\n~, we use-
+  #+begin_src C++
+std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n')
+  #+end_src
+- We can use ~std::cin.peek()~ to peek at the next character in the input buffer like this-
+  #+begin_src C++
+  while (true) {
+    char c{};
+    std::cin >> c;
+
+    if (!std::cin.eof() && std::cin.peek() != '\n') {
+      // clear input buffer
+      std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      continue;
+    }
+  }
+  #+end_src
+*** Error Case 3: Extraction fails and program goes in an infinite loop
+- Whenever an invalid value is present in the input buffer (for example, a ~char~ when ~int~ was asked), the value stays in the buffer and the program again searches the buffer (going into an infinite loop).
+- We can prevent this by doing-
+  #+begin_src C++
+  if (std::cin.fail()) {
+    // If EOF character was inserted (on pressing Ctrl+D)
+    if (std::cin.eof()) {
+        exit(0); // shut down the program now
+    }
+    std::cin.clear(); // used to unset the "failbit" after bad input, i.e., putting back to normal mode
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  }
+  #+end_src
+- We can also just test for failure like this- ~if (!std::cin)~.
+** Assertions
+- Preconditions are the conditions that must be true before a function is called.
+- An *invariant* is a condition that must be true while some section of code is executing. This is often used with loops, where the loop body will only execute so long as the invariant is true.
+- Postconditions are the conditions that must be true after a function is called.
+*** Assert
+- An assertion is a statement that which takes a condition which, if false, will print an error message and run ~std::abort()~.
+- You can use the ~assert~ macro to check if a condition is true.
+  #+begin_src C++
+  void printAge(int age) {
+    assert(age >= 0 && "Age must be positive");
+    std::cout << "I am " << age << " years old" << std::endl;
+  }
+  #+end_src
+  - Assert statements should NOT be used in production code as they come with a performance cost and the program must have already been checked for any errors.
+  - The ~NDEBUG~ flag disables assert statements.
+*** Static Assert
+- Instead of a macro, it is a keyword.
+- It is used to check if a condition is true at *compile time*.
+* Type Conversions, Type Aliases, Type Deduction
+** Implicit Type Conversions
+- Performed automatically by the compiler.
+- If the conversion can not be performed, the compiler will throw an error.
+*** Numeric Promotions
+- A numeric promotion is an implicit type conversion where narrower data types (like char) are converted to wider data types (like int and long) that can be processed efficiently.
+**** Floating Point Promotions
+A value of type float is promoted to double.
+**** Integral Promotions
+A value of type char, signed char, unsigned char, short, or unsigned short is promoted to an int if an int can represent all the values of the original type.
+**** Safe Conversions
+Conversions in which the original value (the meaning) does not change. For example, converting an int to a long.
+**** Reinterpretative Conversions
+Conversions which are considered unsafe where the result may be outside the range of the source type. This includes signed/unsigned conversions.
+**** Lossy Conversions
+Conversions in which the some/whole part of the original value is lost. For example, converting a double to an int or double with many decimal places to a float (low precision causes loss of some decimal values).
+** Narrowing Conversions
+- From a floating point type to an integer type (unless it's constexpr /or/ decimal places are zero).
+- From an integral type to a floating type.
+- From an integral type to a narrower integral type (unless it's constexpr /or/ in range).
+- These are unsafe and should be avoided.
+- In some cases, you may want to explicitly do a narrowing conversion. You can do this using the ~static_cast~ operator.
+** Type Aliases
+- We use the ~using~ keyword to define type aliases.
+#+begin_src C++
+using Distance = double;
+Distance homeToSchool {3.55};
+#+end_src
+- It's a convention to name aliases starting with a capital letter.
+- We can also use ~typedef~ from C in C++ (but it's only present for backwards compatibility and its syntax can get very confusing).
+- The ~std::int8_t~ type is just an alias to ~char~ which is exactly why we get a character value when using it.
+** Type Deduction
+- We defining a variable, for example ~double distance {5.76};~, the literal ~5.76~ has the type double and we have explicitly mentioned ~double~ as the data type of ~distance~, providing the same information twice.
+- The compiler can deduce the type automatically in such cases using- ~auto distance {5.76};~
+- Type deduction doesn't work if the return value of a function is void, for example-
+  #+begin_src C++
+  #include <iostream>
+
+  void test() {
+    // test
+  }
+
+  int main() {
+    auto a {test()}; // Not valid
+    return 0;
+  }
+  #+end_src
+- Using ~auto~ will drop ~const~ and ~constexpr~ from the type.
+#+begin_src C++
+constexpr int num {5};
+auto a {num}; // a is of type int, not constexpr int
+
+constexpr auto b {num}; // b is of type constexpr int
+#+end_src
+- Normal string literals default to the type ~const char*~, so to use ~std::string~ or ~std::string_view~, use literal suffixes- ~"hello"std::literals::s~ or ~"hello"std::literals::sv~.
+- In such cases, it may be better to not use ~auto~ and just use the type explicitly.
+- You can also use ~auto~ with functions, however this is NOT recommended.
+  #+begin_src C++
+  auto add(int a, int b) {
+    return a + b;
+  }
+  #+end_src
+- The following is also valid
+  #+begin_src C++
+  auto add(int a, int b) -> int {
+    return a + b;
+  }
+  #+end_src
+- Type deductions can't be used for function parameters, like ~int add(auto a, autob);~ is not valid.
+* Function Overloading
+- Function overloading is the process of defining multiple functions with the same name but different parameters.
+- The compiler will choose the function to call based on the type of the parameters.
+- Function overloading is allowed so long as the compiler can differntiate between the functions (else, compiler error).
+#+begin_src C++
+#include <iostream>
+int add(int a, int b) {
+  int result = a + b;
+  return result;
+}
+
+double add(double a, double b) {
+  double result = a + b;
+  return result;
+}
+
+int main() {
+  std::cout << add(5, 3) << std::endl;
+  std::cout << add(5.5, 3.3) << std::endl;
+  return 0;
+}
+#+end_src
+- Unexpectedly, there are no downsides to function overloading and it can/should be used liberally.
+** Function Overload Differentiation
+- The compiler differentiates between functions by looking at the *number of parameters* and their *types*.
+- The return type of a function is not considered when differentiating between functions.
+- Qualifiers like ~const~ are also not considered when differentiating between functions.
+** Resolving Overloaded Function Calls
+- Resolving overloaded function calls is the process of the compiler choosing which function to call when an overloaded function is called.
+- It goes through these steps-
+  1. The compiler will look for an exact match for the function call.
+  2. If step 1 fails, the compiler will perform numeric promotions and look for a match.
+  3. If step 2 fails, the compiler will perform numeric conversions and look for a match.
+  4. If step 3 fails, the compiler will look for a match using the user-defined conversions.
+  5. If step 4 fails, the compiler will look for a matching function that uses ellipsis.
+  6. If step 5 fails, the compiler will throw an error.
+** Deleting Functions
+- You can prohibit certain function calls by using the ~delete~ keyword.
+#+begin_src C++
+#include <iostream>
+int add(int a, int b) {
+  return a + b;
+}
+
+void add(char a, char b) = delete; // if called, the program will not compile
+void add(double a, double b) = delete; // if called, the program will not compile
+
+int main() {
+  add(5, 3);
+  add('a', 'b'); // will not compile
+  add(5.5, 3.3); // will not compile
+  return 0;
+}
+#+end_src
+** Default Arguments
+- Default arguments are used to provide a default value for a function parameter.
+- The default arguments should be specified in forward declarations (function prototype) and not in the function definition.
+- Example: ~int add(int a, int b = 0);~
+* Function Templates
+- The generic type is specified using a template parameter.
+#+begin_src C++
+template <typename T>
+T add(T a, T b) {
+  return a + b;
+}
+#+end_src
+- The ~typename~ or the ~class~ keyword is used to specify a template parameter (it doesn't matter if you use ~class~ or ~typename~, both mean the same).
+- A function template is used to generate functions. Function templates themselves are not functions.
+- We can call the add function doing something like this- ~add<int>(5, 6)~. The compiler will see that a function definition for ~add~ does not already exist, so it will generate one.
+- When the data types of arguments matches the typename of the template, we can simply let the compiler deduce the typename doing something like this- ~add<>(5, 6)~ or simply ~add(5,6)~.
+#+begin_src C++
+#include <iostream>
+template <typename T>
+T getMax(T a, T b) {
+  return (a > b) ? a : b;
+}
+
+char getMax(char a, char b) {
+  return (a > b) ? a : b;
+}
+
+int main() {
+  std::cout << getMax<int>(5, 10) << std::endl; // calls getMax<int>(int, int)
+  std::cout << getMax<>(5, 10) << std::endl; // calls getMax<int>(int, int), not template functions are not considered
+  std::cout << getMax(5, 10) << std::endl; // will call getMax(char, char)
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 10 |
+| 10 |
+| 10 |
+** Forward Declaring Function Templates
+#+begin_src C++
+template<>
+T add(T a, T b);
+#+end_src
+** Including Function Templates
+- You can define function templates inside header files since they are exempted from the one definition rule.
+- This allows the compiler to see the full definition of the template and instantiate functions whenever needed.
+- Using forward declarations won't work for function templates.
+** Abbreviated Function Templates
+- For C++20 and above only.
+- Defines a simple shorthand to create function templates-
+  #+begin_src C++
+  // This is a shorthand to the template definition below
+  auto add(auto a, auto b) {
+    return a + b;
+  }
+
+  // The above is the shorthand to this
+  template <typename T, typename U>
+  audo add(T a, U b) {
+          return a + b;
+  }
+  #+end_src
+** Non-type Template Parameters
+- A template parameter used to represent a ~constexpr~ value.
+- The following types are accepted as template parameters-
+  1. Integral types
+  2. Enumeration type
+  3. Floating Point type (since C++20)
+  4. Literal class types (since C++20)
+  5. Etc...
+- From C++17 onwards, you can use the ~auto~ keyword to automatically let the compiler deduce the non-type template parameter from the template argument.
+#+begin_src C++
+#include <iostream>
+template <int N>
+void print() {
+  std::cout << N << std::endl;
+}
+
+int main() {
+  print<5>();
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5
+* References
+** Lvalue and Rvalue Expressions
+- Rvalue expressions are expressions which evaluate to a value.
+- Lvalue expressions are expressions which evaluate to identifiable objects.
+#+begin_quote
+If you're not sure if an expression is an lvalue or not, remember that all lvalues can be referenced using the ~&~ operator while rvalues can not.
+For example, ~&x~, where ~x~ is a variable (something like ~&5~ won't work since 5 is an rvalue expression).
+#+end_quote
+- Lvalue expressions are implicitly converted to rvalue expressions when they are provided in places where rvalues were expected.
+- Lvalues are of two types, modifiable (non-const) and non-modifiable (~const~).
+- C-style string literalls are rvalues.
+** Lvalue References
+- An lvalue reference acts as an alias for an existing lvalue.
+- It is declared using the ~&~ operator
+  #+begin_src C++
+  int // int type
+  int& // lvalue reference to an int
+  double& // lvalue reference to a double
+  #+end_src
+- We can create lvalue reference variables like this
+#+begin_src C++
+int age {10};
+int& referenceToAge {age};
+#+end_src
+- References /must/ always be initialized.
+- Once initialized, a reference can not be changed to refer to another object.
+- References are not objects in C++. They aren't required to be stored in memory. The compiler might also replace all occurances of the reference with the referent to optimize.
+- The above point is the reason why you can /not/ have references to references in C++.
+#+begin_src C++
+int x {10};
+int& ref {x}; // reference to x
+int& ref2 {ref}; // this will work because it's NOT a reference to ref, it's a reference to x
+#+end_src
+- Lvalue references can not bind to non-modifiable lvalues (non-const).
+#+begin_src C++
+const int x {10};
+int& ref {x}; // not allowed
+#+end_src
+- Type deductions using the ~auto~ keyword will drop references.
+#+begin_src C++
+int x {10};
+int& y {x}; // reference to x
+
+auto z {y}; // z is of type int, not int&
+auto& z2 {y}; // z2 is of type int&
+#+end_src
+- Type deductions using ~auto~ will drop references first and only then it will drop top-level consts.
+#+begin_src C++
+#include <string>
+const std::string& getConstRef(); // some function that returns a const reference
+int main() {
+    auto ref1{ getConstRef() };        // std::string (reference and top-level const dropped)
+    const auto ref2{ getConstRef() };  // const std::string (reference dropped, const reapplied)
+    auto& ref3{ getConstRef() };       // const std::string& (reference reapplied, low-level const not dropped)
+    const auto& ref4{ getConstRef() }; // const std::string& (reference and const reapplied)
+    return 0;
+}
+#+end_src
+** Dangling References
+- When the object that a reference refers to is destroyed, the reference becomes a dangling reference.
+** Lvalue references to const
+- To make lvalue references bind to non-modifiable lvalues, use the ~const~ keyword.
+#+begin_src C++
+const int x {10};
+const int& ref {x}; // allowed
+
+int y {20};
+const int& ref2 {y}; // allowed, but ref2 can not be used to modify y
+#+end_src
+
+#+begin_quote
+Always use lvalue references to const when you don't need to modify the referent.
+#+end_quote
+- Lvalue references to const can also bind to rvalues.
+  #+begin_src C++
+const int& ref {5}; // allowed
+  #+end_src
+- In the above example, a temporary object will be created to store the value 5 and the reference will bind to that temporary object.
+- This will increase the lifetime of the temporary object to the lifetime of the reference.
+** Pass Values by Reference To Functions
+- Reduces the overhead of copying large objects.
+#+begin_src C++
+#include <iostream>
+
+void hello(std::string& name) {
+  std::cout << name << std::endl;
+}
+
+int main() {
+  std::string text {"Hello World"};
+  hello(text);
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: Hello World
+
+#+begin_quote
+As a rule of thumb, pass fundamental types by value and class (or struct) types by references.
+Other common types to pass by value: enumerated types and std::string_view.
+Other common types to pass by (const) reference: std::string, std::array, and std::vector.
+#+end_quote
+- For objects that are cheap to copy, the cost of copying is similar to the cost of binding, so we favor pass by value so the code generated will be faster.
+- For objects that are expensive to copy, the cost of the copy dominates, so we favor pass by (const) reference to avoid making a copy.
+- ~std::string_view~ is better than ~std::string&~ because when passing different types of strings (c-style string literals, string_view, string), the ~std::string_view~ will be able to reference all those types easily, while passing types other than ~std::string~ to a ~std::string&~ will require the compiler to make a temporary ~std::string~ object (by implicit conversion or copy).
+*** 
+** Return by Reference
+- When returning values from a function, a copy is returned.
+- This may be expensive for class types.
+#+begin_src C++
+#include <iostream>
+// notice the ampersand (&) in the return type
+const int& foo() {
+  static constexpr int age {20}; // destroyed at the end of the program
+  return age;
+}
+int main() {
+  std::cout << foo() << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 20
+#+begin_quote
+Avoid returning non-const static values as references.
+#+end_quote
+- Initializing a reference returned by a function to a non reference variable will make a copy of the return value which defeats the entire purpose of returning a reference.
+#+begin_src C++
+const int& foo() {
+  static const int age {20};
+  return age;
+}
+
+int main() {
+  const int age {foo()}; // BAD: Defeats the purpose of returning reference from foo()
+  const int& age2 {foo()}; // GOOD
+  return 0;
+}
+#+end_src
+** In-Out Parameters
+- Parameters which are used to receive input from the function caller are called in parameters.
+- Parameters which are used to send output to the function caller are called out parameters (for example, references and pointers which are used to modify the original object from inside the function).
+* Pointers
+- Always initialize your pointers, for example, ~int* a{&x};~.
+- Unlike references, pointers /are/ objects and they require space in memory to exist.
+- References are safer than pointers (which are inherently dangerous).
+- The size of a pointer depends on the architecture the program's being compiled for. On a 32-bit machine, a pointer will be 32 bit in size and 64bits on a 64-bit machine.
+** Dangling Pointers
+- Pointers which store invalid addresses are called dangling pointers.
+- Dereferencing such pointers leads to undefined behaviour.
+** Null Pointers
+- Can be initialized using direct list initialization like this- ~int* ptr {};~
+- They don't point to any address.
+- Can later be assigned an address.
+- We can use the ~nullptr~ /literal/ to initialize a null pointer explicitly- ~int* ptr {nullptr};~
+- ~nullptr~ has the type ~std::nullptr_t~. So whenever nullptr is used to initialize a pointer variable, it is implicitly converted from ~std::nullptr_t~ to the required type.
+#+begin_src C++
+int main() {
+  int* ptr {nullptr}; // can initialize using nullptr
+  int* anotherPtr {};
+
+  anotherPtr = nullptr; // can also assign to nullptr literal later
+
+  foo(nullptr); // can also pass nullptr literal to functions
+  if (ptr == nullptr) std::cout << "No";
+
+  // null pointers (nullptr) are implicitly converted to boolean value FALSE and pointers that hold addresses to TRUE
+  if (ptr) std::cout << "The pointer, the pointer is real";
+  return 0;
+}
+#+end_src
+- Dereferencing a null pointer also results in undefined behaviour.
+** Pointer to a Const
+- You can not assign a non-const pointer to a const variable.
+#+begin_src C++
+const int age {5};
+int* agePtr {&age}; // compile error!!
+
+const int* agePtr2 {&age}; // will work!
+agePtr2 = {&someOtherVariable}; // will still work!
+#+end_src
+- A *pointer to a const* is *not* a const itself, so you can change the address it is pointing to.
+- A *pointer to a const*, when pointing to a non-const variable will not allow you to modify the value at the address it is pointing to.
+** Const Pointers
+- This is different from a *pointer to a const*.
+- A const pointer is a pointer whose address can not be changed once initialized.
+#+begin_src C++
+int age {5};
+int* const agePtr {&age};
+
+agePtr = {&someOtherVariable}; // NOT ALLOWED
+#+end_src
+** Const Pointer to a Const Variable
+- The combination of both the above!
+#+begin_src C++
+int age {5};
+const int* const agePtr {&age};
+#+end_src
+- Just like normal *pointer to const variables*, the referents don't have to be const.
+** Passing Values to Functions By Address
+#+begin_src C++
+#include <iostream>
+void foo(int* num) {
+  std::cout << *num << std::endl;
+}
+
+int main() {
+  int age {5};
+  foo(&age);
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5
+
+#+begin_quote
+Prefer using references instead of pointers wherever possible.
+#+end_quote
+- Passing by address copies the address from the caller to the function.
+** Setting Optional Parameters in Functions
+- We can use ~nullptr~ to set optional parameters in functions.
+#+begin_src C++
+void foo(const int* bar=nullptr) {
+  if(bar) std::cout << *bar;
+  else std::cout << "No";
+}
+#+end_src
+- Function overloading is a better way to achive the same result.
+#+begin_src C++
+void foo(const int& bar) {
+  std::cout << bar;
+}
+
+void foo() {
+  std::cout << "No";
+}
+#+end_src
+
+** Top Level and Low Level Consts
+- Consts that apply to the object itself are called top level consts. For example, ~const int x {5};~.
+- Consts that apply to the reference or pointer to the object are called low level consts. For example, ~int const* ptr {&x};~.
+#+begin_src C++
+int x {10};
+const int* const y {&z}; // the left const is low level, the right const is top level
+#+end_src
+
+** Auto and Pointers
+*** TODO Read chapter 12.14 again!
+- When using the auto keyword, the pointer type is not dropped, only top level consts are dropped.
+#+begin_src C++
+std::string s{};
+const std::string* const ptr {&s};
+
+// statement // final type deduced
+auto ptr1 {ptr}; // const std::string*
+auto* ptr2 {ptr}; // const std::string*
+
+const auto ptr3 {ptr}; // const std::string* const
+auto const ptr4 {ptr}; // const std::string* const
+
+auto* const ptr5 {ptr}; // const std::string* const
+const auto* ptr6 {ptr}; // const std::string*
+
+const auto const ptr7 {ptr}; // error, const is used twice
+const auto* const ptr8 {ptr}; // const std::string* const
+#+end_src
+* User Defined Types
+These include
+1. Enumerated Types
+2. Class Types
+   1. Structs
+   2. Classes
+   3. Unions
+#+begin_quote
+
+Compilers need to see the full definition of user defined types. So, try to make a separate header file with the same name as the type and include it wherever you need to use it.
+#+end_quote
+The C++ language standard defines a user-defined type as any class or enumerated type defined by you, the standard library or the implementation. This means that even ~std::string~ is considered a user defined type.
+** Enumeration Types
+*** Unscoped Enumerations
+- They are defined using the ~enum~ keyword.
+#+begin_src C++
+enum Color {
+  red = 5, // assigned 5
+  green, // assigned 6
+  blue, // assigned 7
+};
+
+int main() {
+  // Now, we can use Color as a data type
+  Color apple {red};
+  Color shirt {blue};
+
+  Color ball {2}; // ERROR because 2 is not a part of the enum Color
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+- Enumerators are implicitly ~constexpr~.
+- Enums are commonly used to store days of week, months, suits in a deck of card, directions (north, east, west, south), log levels (warning, errors, etc), status codes, and a lot more things.
+- Enumerations are small and inexpensive to copy, so it's *fine* to pass them by value.
+- Unscoped enumerations put their enumerator names into the same scope as they are defined in (global scope, in the above example). This can cause clutter and naming collisions.
+- Unscoped enumerations also provide a named scope region for their enumerators. For example, ~Color::red~ can be used.
+- The following should be used to prevent polluting the parent scope-
+#+begin_src C++
+namespace Color {
+  enum Color {
+    red, // assigned 0
+    green, // assigned 1
+    blue, // assigned 2
+  }
+}
+
+int main() {
+  Color::Color apple {Color::red}; // notice the data type and the enumerator
+  return 0;
+}
+#+end_src
+**** Enumeration Size or Underlying Type
+- This is the specific type used to represent the integral values held by the enumerators.
+- Default type depends on the compiler but is mostly ~int~.
+- You might want to use a different type to save bandwidth or any other reason-
+#+begin_src C++
+enum Color : std::int8_t {
+  red,
+  green,
+  blue,
+}
+#+end_src
+- Do this only when necessary.
+- If we specify the type like this, we can *list initialize* the variable using integer literals.
+#+begin_src C++
+enum Color : int {
+  red,
+  green,
+  blue,
+};
+
+int main() {
+  Color apple {0}; // okay, list initialization is allowed if type is specified.
+  Color shirt (0); // compile error, copy initialization not allowed with integer literals
+  return 0;
+}
+#+end_src
+*** Scoped Enumerations
+- Similar to unscoped but they prevent the following two things-
+  1. They don't implicitly convert to integers
+  2. They are only placed in the scope region of the enumeration
+#+begin_src C++
+enum class Color {
+  red,
+  green,
+  blue
+};
+
+int main() {
+  Color apple {Color::red};
+  Color shirt {Color::blue};
+  return 0;
+}
+#+end_src
+- Since they don't implicitly convert to integers, you can not print them onto the screen using ~std::cout~. You can use C++23's ~std::to_underlying(Color::red)~ or a normal static conversion to print them.
+- From C++20 onwards, we can do the following-
+#+begin_src C++
+enum class Color {
+  red,
+  green,
+  blue,
+}
+
+int main() {
+  using enum Color;
+  Color car {red}; // no need to use the scope resolution operator ::
+  return 0;
+}
+#+end_src
+** Class Types
+*** Structs
+- These are program defined types.
+#+begin_src C++
+struct Employee {
+  int id {};
+  int age {};
+  double wage {};
+};
+
+int main() {
+  // no need to use "struct Employee john" unlike C
+  Employee john {};
+  return 0;
+}
+#+end_src
+- The variables inside a struct are called data members.
+- Structs are of aggregate type meaning they store multiple data members (these include C-style arrays, structs, std::array, etc).
+- Structs require aggregate initialization like this-
+#+begin_src C++
+Employee john {1, 24, 50000.0}; // direct list initialization (preferred)
+Employee doe = {2, 24, 60000.0}; // copy list initialization
+#+end_src 
+- If we leave the list empty (~Employee john {};~) when initializing a struct type, it will get value initialized (0 for integral types, "" for string etc..).
+**** Designated Initializers
+- Only for C++20 and above.
+#+begin_src C++ :flags -std=c++14
+#include <iostream>
+struct Employee {
+  int id {};
+  int age {};
+  double wage {};
+};
+
+int main() {
+
+  Employee tenma { .id{1}, .age{24}, .wage{60000.0}}; // ok
+  Employee johan { .id{2}, .wage{60000.0}}; // ok, age is value initialized (0)
+  Employee anna { .wage{60000.0}, .id{3}}; // error, order does not match
+  std::cout << john.wage << std::endl;
+
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 60000
+
+#+begin_quote
+
+Do not use designated initializers to prevent clutter. Use the normal way and if you need to add new data members, add them to the end so order won't mix up.
+#+end_quote
+**** Designated Assignment
+#+begin_src C++
+#include <iostream>
+struct Employee {
+  int id {};
+  int age {};
+  double wage {};
+};
+
+int main() {
+
+  Employee tenma{};
+  tenma = {.id = 1, .age = 32, .wage = 50000.0};
+  std::cout << john.wage << std::endl;
+
+  return 0;
+}
+#+end_src
+**** Default Member Initialization
+#+begin_src C++
+#include <iostream>
+struct Something {
+  int first; // bad
+  int second {}; // 0 initialized
+  int third {5}; // default value 5
+};
+
+int main() {
+  Something thing {}; // first is value initialized to 0, second has default member 0, third is 5
+  std::cout << thing.first << std::endl;
+
+  Something anotherThing; // not initialized (bad)
+  std::cout << anotherThing.first << std::endl; // garbage value since it's not value initialized
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+|         0 |
+| 779647075 |
+
+#+begin_quote
+
+Always provide a default value to each member of structs.
+#+end_quote
+**** Passing/Returning Structs From/To Functions
+- Always try to pass structs by references or pointers to avoid making copies.
+- When passing by reference, you can access properties by using ~.~ like ~thing.first~.
+- When passing by pointers, you have to access properties by using ~->~ like ~thing->first~.
+- When returning, it is not necessary to create a temporary object and then return it.
+#+begin_src C++
+struct Point {
+  int x {0};
+  int y {0};
+  int z {0};
+};
+
+// It returns point with default initialized members
+Point test() {
+  // You can also do something like this
+  /*
+   * return Point {}; 
+   * return {1, 2, 3}; 
+   */
+  return {};
+}
+#+end_src
+**** Nested Structs
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+struct Company {
+  struct CEO {
+    int id {};
+    int age {};
+  };
+  int numberOfEmployees {};
+  CEO companyCEO {};
+};
+
+int main() {
+  Company myCompany {50000, {0, 20}};
+  std::cout << myCompany.companyCEO.age << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 20
+**** Size of Structs and Padding
+- The size of a struct is /not/ always the sum of sizes of its data members.
+- The compiler can add certain gaps (called padding) in the struct for performance reasons. For example, if the sum of size is 14 bytes, it will add gaps such that the size of the actual struct will be 16 bytes (2x8).
+#+begin_src C++
+// size of this struct is 12
+struct One {
+  short a {}; // 2 bytes of padding added to make the size 4 bytes
+  int b {};
+  short c {}; // 2 bytes of more padding added
+};
+
+// size of this struct is 8
+struct Two {
+  int b {}; // no padding
+  short c {}; // no padding
+  short a {}; // no padding
+};
+#+end_src
+#+begin_quote
+
+Always define data members of structs in decreasing order of their size to avoid padding as much as possible.
+#+end_quote
+*** Class Templates on Structs
+- Just like function templates are used to generate function definitions, class templates are used to generate class types (structs, classes, etc).
+#+begin_src C++
+#include <iostream>
+
+template <typename T>
+struct Point {
+  T x {};
+  T y {};
+};
+
+int main() {
+  Point<int> coords {0,0};
+  std::cout << coords.x << std::endl;
+  std::cout << coords.y << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 0 |
+| 0 |
+
+- We can *not* overload structs for different data types. The compiler will see them just like a redefinition of the struct.
+- We can make functions for these template classes like this-
+#+begin_src C++
+#include <iostream>
+#include <cmath>
+
+template <typename T>
+struct Point {
+  T x {};
+  T y {};
+};
+
+template <typename T>
+T getDistanceFromOrigin(Point<T> pt) {
+  return (std::sqrt(std::pow(pt.x, 2) + std::pow(pt.y, 2)));
+}
+
+int main() {
+  Point<int> a {2, 10};
+
+  // template argument will be deduced automatically
+  std::cout << getDistanceFromOrigin(a) << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 10
+**** ~std::pair~
+- Working with pairs of data is very common.
+- The C++ standard library has a built-in class template for a pair type with ~first~ and ~second~ as the data members.
+#+begin_src C++
+#include <iostream>
+#include <utility>
+
+int main() {
+  std::pair<int, double> a{2, 3.4};
+  std::cout << a.first << std::endl;
+  std::cout << a.second << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+|   2 |
+| 3.4 |
+- Favour using this instead of writing your own "pair" class template.
+**** CTAD (C++17)
+- Class Template Argument Deduction
+- Starting from C++17, the compiler can deduce the types of template arguments on its own when instantiating objects of the class templates.
+#+begin_src C++ :flags -std=c++17
+template <typename T>
+struct Point {
+  T x;
+  T y;
+};
+
+int main() {
+  Point a {1, 2};
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+- The above program won't work with C++17 but will work on C++20 because prior to C++20, you had to specify a "deduction guide" to the compiler so that it knows how to deduce the type.
+#+begin_src C++
+template <typename T>
+struct Point {
+  T x;
+  T y;
+};
+
+// Deduction guide for C++17
+// We are simply saying that if it finds a declaration of Point with two arguments of type T and T
+// it should deduce the type to be of Pair<T>
+template <typename T>
+Point(T, T) -> Point<T>;
+
+int main() {
+  Point a {1, 2};
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+* Object Oriented Programming
+** Classes
+*** Introduction
+- A class is a program-defined type which can have member variables of different types and member functions.
+- Example definition of a class with member variables-
+- Structs and classes are almost identical in C++. Any example written using classes can also be written using structs and vice-versa.
+- Structs have all the capabilities that classes have in C++ (not in C though), so you may use the one you like or go with the convention of using classes.
+#+begin_src C++
+class Employee {
+  int id {};
+  int age {};
+  double wage {};
+}
+#+end_src
+*** Member Functions
+- Functions defined inside class types are called member functions.
+#+begin_src C++
+#include <iostream>
+struct Date {
+  int day {};
+  int month {};
+  int year {};
+
+  void print() {
+    std::cout << day << '/' << month << '/' << year << std::endl;
+  }
+};
+
+int main() {
+  Date today{23,3,2024};
+  today.print();
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 23/2/2024
+- Member functions can be written in any order in a class type.
+- Member functions can also be overloaded as long as they can be differentiated.
+- Defining members functions inside structs should be avoided because it makes them a non-agregate, and that's why we use classes instead.
