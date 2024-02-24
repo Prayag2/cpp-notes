@@ -2099,3 +2099,36 @@ int main() {
 - Member functions can be written in any order in a class type.
 - Member functions can also be overloaded as long as they can be differentiated.
 - Defining members functions inside structs should be avoided because it makes them a non-agregate, and that's why we use classes instead.
+*** Const Class Type Objects
+- Class type objects can be initialized with the ~const~ keyword.
+- They can not be left uninitialized.
+- No attempt to modify their properties is entertained.
+- Const objects are also not allowed to call non-const member functions-
+#+begin_src C++
+#include <iostream>
+struct Test {
+  int id {};
+  void print() {
+    std::cout << "test" << std::endl;
+  }
+  void print2() const {
+    std::cout << "test2" << std::endl;
+    ++id; // error, const member functions can not modify members
+  }
+};
+
+int main() {
+  const Test t {0};
+  t.id = 1; // error
+  t.print(); // error again
+  t.print2(); // ok
+
+  return 0;
+}
+#+end_src
+
+#+begin_quote
+
+A function which does not modify the state of an object /should/ absolutely be made ~const~ as a good practice.
+#+end_quote
+- You can overload the same member function with the exact same definition by adding a variant without the ~const~ keyword and one with the ~const~ keyword.
