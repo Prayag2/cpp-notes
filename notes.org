@@ -1810,6 +1810,13 @@ Employee john {1, 24, 50000.0}; // direct list initialization (preferred)
 Employee doe = {2, 24, 60000.0}; // copy list initialization
 #+end_src 
 - If we leave the list empty (~Employee john {};~) when initializing a struct type, it will get value initialized (0 for integral types, "" for string etc..).
+#+begin_quote
+
+An type is NOT considered aggregate if it has any of the following-
+- User declared constructor
+- Private or protected non-static data members
+- Virtual functions
+#+end_quote
 **** Designated Initializers
 - Only for C++20 and above.
 #+begin_src C++ :flags -std=c++14
@@ -2132,3 +2139,227 @@ int main() {
 A function which does not modify the state of an object /should/ absolutely be made ~const~ as a good practice.
 #+end_quote
 - You can overload the same member function with the exact same definition by adding a variant without the ~const~ keyword and one with the ~const~ keyword.
+*** Access Levels
+C++ classes have three access levels: public, private and protected.
+- Members of struct are public by default.
+- Members of class are private by default.
+- We can *not* use aggregate initialization for classes because their members are private by default!
+**** Public
+Public members of a class type can be accessed by anyone in the scope.
+We can set access level of data members using the *access specifier* ~public:~.
+
+#+RESULTS:
+: 2004-6-5
+
+**** Private
+Private members of a class type can only be accessed by other members of the same class.
+#+begin_quote
+
+It is a good practice to prefix private data members with an ~m_~ like ~m_age~.
+#+end_quote
+We can set the access level using ~private:~
+#+begin_src C++
+#include <iostream>
+class Date {
+public:
+  void print() const {
+    std::cout << m_year << "-" << m_month << "-" << m_day << std::endl;
+  }
+private:
+  int m_year {2004};
+  int m_month {6};
+  int m_day {5};
+};
+
+
+
+int main() {
+  Date date {};
+  date.print();
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 2004-6-5
+#+begin_quote
+
+Best Practice: Classes should generally make member variables private and member functions public.
+Structs should avoid using access specifiers and all members should be made public.
+#+end_quote
+- Private members can be accessed by other OBJECTS of the same class too!
+
+**** Access Functions
+- These are trivial public member functions whose job is to retreive or change the value of a private member variable.
+- These come in two flavours: getters and setters.
+- Getters are usually made const so they can be called on both const and non-const objects.
+- Setters should be non-const.
+#+begin_src C++
+#include <iostream>
+
+class Date {
+private:
+  int m_year {};
+  int m_month {};
+  int m_day {};
+public:
+  void print() {
+    std::cout << m_year << '/' << m_month << '/' << m_day << std::endl;
+  }
+
+  int getYear() const { return m_year; }
+  void setYear(int year) { m_year = year; }
+  int getMonth() const { return m_month; }
+  void setMonth(int month) { m_month = month; }
+  int getDay() const { return m_day; }
+  void setDay(int day) { m_day = day; }
+};
+#+end_src
+#+begin_quote
+
+A member function returning a reference should return a reference of the same type as the data member being returned, to avoid unnecessary conversions. For example, you should *not* return ~std::string_view~ for an ~std::string~ because that would require an unnecessary conversion.
+#+end_quote
+
+*** Encapsulation (Data Hiding)
+- The interface of a class type defines how a user interacts with objects of that class type.
+- An interace composed of public members is sometimes called the *public interace*.
+- The *implementation* consists of the code that actually makes the class behave as intended. It includes the member variables which store data and the *body* of member functions.
+- Data hiding is also known as *encapsulation*.
+- It is a technique used to enforce the separation of interface and implementation.
+- It is simply implemented by making member variables private and providing public member functions to manipulate the private members.
+- *Class invariants* are conditions which /must/ be true throughout the lifetime of an object in order for the object to stay in a valid state.
+#+begin_src C++
+#include <iostream>
+
+// consider this example
+// the user will have to change the initial if he/she ever changes the name
+// this is called a class invariant (initial must be the first letter of name throughout the program)
+class Person {
+public:
+  std::string name {"John"};
+  char initial {'J'};
+};
+#+end_src
+- This is one of the biggest reasons why we should use encapsulation.
+- Data hiding helps provide better error handling by verifying values in the setters.
+- It also helps us to change the implementation of the underlying member variables without breaking programs using the interface.
+#+begin_quote
+
+If a function can be implemented as a *non-member* function, consider implementing it as a non-member function. This will make sure-
+- Interface of your class is smaller.
+- They are easier to debug.
+#+end_quote
+#+begin_quote
+
+Best Practice-
+Declare public members first in your class definitions followed by private members. This is because any user looking at your class is only interested in the interface.
+#+end_quote
+
+*** Constructors
+- Non-aggregate types (such as structs with private members or class types) can not be initialized using aggregate initialization.
+- One of the reasons is that, for data hiding, we don't want the user to worry about the implementation of the data members.
+- So, if the user had to initialize using aggregate initialization, then the user would need to know the order in which members were defined.
+- Constructors are functions used to initialize data members and do optional things like opening databases etc upon the creation of a class type /object/.
+- First, the object is created and then the matching constructor is called. If the constructor function is not found, an error is raised by the compiler.
+- Constructors can also be overloaded since they're just functions.
+- One class type can only have one /default/ constructor (a constructor which does not take any parameters).
+
+**** Naming Constructors
+- Constructors have special rules which must be followed while naming them.
+  1. The function must have the same name as that of the class type (with the same case).
+  2. The function must /not/ return anything.
+#+begin_src C++
+#include <iostream>
+#include <string>
+#include <string_view>
+
+class Student {
+private:
+  std::string m_name {};
+  int m_age {};
+
+public:
+  // this is the constructor function without any return type
+  Student (std::string_view name, int age) {
+    m_name = name;
+    m_age = age;
+  }
+
+  const std::string& getName() const {return m_name;}
+  void setName(std::string_view name) {m_name = name;}
+
+  int getAge() {return m_age;}
+  void setAge(int age) {m_age = age;}
+};
+
+int main() {
+  Student s1{"Prayag Jain", 20};
+  std::cout << s1.getName() << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: Prayag Jain
+
+**** Member Initialization List
+- No need to assign member variables to the arguments passed to the constructor.
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+class Student {
+private:
+  std::string m_name{};
+  int m_age{};
+public:
+  Student(std::string_view name, int age): m_name {name}, m_age {age} {
+    std::cout << "Initialized successfully" << std::endl;
+  }
+
+  const std::string& getName() const {return m_name;}
+  void setName(std::string_view name) {m_name = name;}
+
+  int getAge() {return m_age;}
+  void setAge(int age) {m_age = age;}
+};
+
+int main() {
+  Student s1{"Prayag Jain", 20};
+  std::cout << s1.getName() << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| Initialized | successfully |
+| Prayag      | Jain         |
+
+**** Implicit Default Constructors
+- If no constructor is provided to a class, an implicit default constructor is created which can be used to initialize objects of the constructor.
+- The implicit constructor does /not/ take any arguments and is equivalen to-
+#+begin_src C++
+class Student {
+  private:
+    int m_age{};
+    char m_initial {}; 
+  public:
+    Student() {};
+};
+#+end_src
+
+**** Explicit Default Constructors
+- In cases when we want to generate a default constructor similar to the implicit one, we can do something like this-
+
+#+begin_src C++
+class Student {
+  private:
+    int m_age{};
+    char m_initial {}; 
+  public:
+    // explicit default constructor (prefer doing this)
+    Student() = default;
+    // overloaded constructor
+    Student(int age, char initial) : m_age{age}, m_initial{initial} {};
+};
+#+end_src
