@@ -2363,3 +2363,188 @@ class Student {
     Student(int age, char initial) : m_age{age}, m_initial{initial} {};
 };
 #+end_src
+
+**** Delegating Constructors
+- In a class type, constructors are allowed to transfer the ability to initialize to another constructor of the same class type.
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+class Employee {
+private:
+  int m_id {};
+  std::string m_name {};
+
+public:
+  Employee(int id, std::string name) : m_id{id}, m_name{name} {
+    std::cout << "initialized" << std::endl;
+  }
+
+  // delegated to the above function
+  Employee(std::string name) : Employee{0, name} {}
+};
+
+int main() {
+  Employee e1("Prayag");
+  Employee e2(1, "Parin");
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| initialized |
+| initialized |
+
+**** Temporary Class Objects
+- We can temporarily create class objects to pass them to functions or use in expressions.
+- This is useful when you only want to use that object once.
+#+begin_src C++
+// assume a Ball object exists
+// ...
+// assume a print function exists
+// ...
+
+int main() {
+  // temporary ball object passed to function
+  print(Ball{"white", 5.0});
+
+  // implicit conversion to ball object
+  print({"white", 5.0});
+}
+#+end_src
+
+**** Copy Constructor
+- Used to initialize an object with an object of the same type.
+- Implicit copy constructors are created when one is not created explicitly.
+- You can explicitly create a copy constructor like this-
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+class Employee {
+private:
+  std::string m_name {};
+  int m_id{};
+public:
+  Employee (const std::string name, const int id) : m_name(name), m_id(id) {
+    std::cout << "constructor called" << std::endl;
+  };
+
+  // Explicit copy constructor
+  Employee (const Employee& e) : m_name(e.m_name), m_id(e.m_id) {
+    std::cout << "copy constructor called" << std::endl;
+  };
+};
+
+int main() {
+  Employee alice {"Alice", 1};
+  Employee bob {alice}; // Calls the copy constructor
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+| constructor | called      |        |
+| copy        | constructor | called |
+
+#+begin_quote
+
+Prefer the implicit copy constructor, but if you do want to create an explicit one, the parameter /must/ be a const lvalue reference. This is because if its passed by value, it would start an infinite chain of calls to the copy constructor (copy constructor is called when passing objects by value).
+#+end_quote
+- We can also tell the compiler to explicitly create a copy constructor for us-
+#+begin_src C++
+class Employee {
+private:
+  std::string m_name {};
+  int m_id{};
+public:
+  Employee (const std::string name, const int id) : m_name(name), m_id(id) {
+    std::cout << "constructor called" << std::endl;
+  };
+
+  // Explicit copy constructor
+  Employee (const Employee& e) = default;
+};
+#+end_src
+- We can prevent objects from being copied by using the ~= delete~ syntax.
+#+begin_src C++
+class Employee {
+private:
+  std::string m_name {};
+  int m_id{};
+public:
+  Employee (const std::string name, const int id) : m_name(name), m_id(id) {
+    std::cout << "constructor called" << std::endl;
+  };
+
+  // Copying the object will not be allowed
+  Employee (const Employee& e) = delete;
+};
+#+end_src
+
+**** Copy Elision
+- It is an optimization technique used by compilers that allows them to remove unnecessary copying of objects.
+- When the compiler optimizes away a call to the copy constructor, we say the object has been /elided/.
+- The compiler is free to remove unnecessary calls to the copy constructor, /even if it has side effects/!
+- This is one of the biggest reasons copy constructors /should not/ have any side effects.
+
+**** Converting Constructors
+- All constructors are converting constructors by default.
+- Constructors are used to determine how to do implicit conversion where a specific class type object was required but something else was provided.
+- Only one user-defined conversion may be applied to perform an implicit conversion.
+#+begin_src C++
+#include <iostream>
+#include <string>
+#include <string_view>
+
+class Employee {
+private:
+  std::string m_name {};
+  int m_id {};
+
+public:
+  Employee(const std::string_view name, int id) : m_name(name), m_id(id) {};
+  Employee (const std::string_view name) : Employee(name, 0) {};
+
+  Employee (const Employee& p) = default;
+
+  const std::string& getName() const {return m_name;};
+};
+
+void getName(const Employee& e) {
+  std::cout << e.getName() << std::endl;
+}
+
+int main() {
+  getName("Parin"); // compiler error because "Parin" will first be converted to std::string_view from const char* and that will then be converted to an Employee{} object but only one implicit conversion is allowed (2 here).
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+- The ~explicit~ keyword can be used to specify that a constructor should /not/ be used as a converting constuctor, hence, disallowing implicit conversions.
+#+begin_src C++
+class Employee {
+private:
+  std::string m_name {};
+  int m_id {};
+
+public:
+
+  // implicit conversions won't be allowed
+  explicit Employee(const std::string_view name, int id) : m_name(name), m_id(id) {};
+  explicit Employee (const std::string_view name) : Employee(name, 0) {};
+
+  Employee (const Employee& p) = default;
+
+  const std::string& getName() const {return m_name;};
+};
+#+end_src
+
+#+begin_quote
+
+Make any constructor that accepts a single argument explicit by default. If an implicit conversion between types is both semantically equivalent and performant, you can consider making the constructor non-explicit.
+
+Do not make copy or move constructors explicit, as these do not perform conversions.
+#+end_quote
