@@ -1323,6 +1323,10 @@ int main() {
 - Default arguments are used to provide a default value for a function parameter.
 - The default arguments should be specified in forward declarations (function prototype) and not in the function definition.
 - Example: ~int add(int a, int b = 0);~
+#+begin_quote
+BEST PRACTICE:
+If the function has a forward declaration (especially one in a header file), put the default argument there. Otherwise, put the default argument in the function definition. For example, in the forward declaration do this ~int add(int x=5, int y=7)~ and in the definition, do this ~int add(int x, int y)~.
+#+end_quote
 * Function Templates
 - The generic type is specified using a template parameter.
 #+begin_src C++
@@ -2548,3 +2552,164 @@ Make any constructor that accepts a single argument explicit by default. If an i
 
 Do not make copy or move constructors explicit, as these do not perform conversions.
 #+end_quote
+
+* More on Classes
+** The ~this~ keyword
+- Every member function has an access to a const pointer named ~this~.
+- This pointer points to the address of the current object.
+#+begin_src C++
+#include <iostream>
+
+class Point {
+private:
+  int m_x {};
+  int m_y {};
+public:
+  Point(int x = 0, int y = 0) : m_x(x), m_y(y) {}
+  int getX() const { return this->m_x; }
+};
+
+int main() {
+  Point point{};
+  std::cout << point.getX() << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 0
+** Returning ~*this~
+- We can return ~*this~ keyword in member functions and achieve function chaining!
+#+begin_src C++
+#include <iostream>
+
+class Fraction {
+private:
+  int m_numerator {};
+  int m_denominator {};
+public:
+  Fraction() = default;
+  Fraction(int n, int d) : m_numerator(n), m_denominator(d) {};
+
+  void print() const {
+    std::cout << m_numerator << "/" << m_denominator << std::endl;
+  }
+
+  Fraction& add(const Fraction& f) {
+    m_numerator = m_numerator * f.m_denominator + m_denominator * f.m_numerator;
+    m_denominator *= f.m_denominator;
+    return *this;
+  }
+  Fraction& multiply(const Fraction& f) {
+    m_numerator *= f.m_numerator;
+    m_denominator *= f.m_denominator;
+    return *this;
+  }
+  Fraction& subtract(const Fraction& f) {
+    m_numerator = m_numerator * f.m_denominator - m_denominator * f.m_numerator;
+    m_denominator *= f.m_denominator;
+    return *this;
+  }
+};
+
+int main() {
+  Fraction f1{2, 5};
+  f1.add(Fraction{3, 8}).multiply(Fraction{2, 3}).print();
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 62/120
+** Resetting Class Objects
+- We can do something like this to reset class type objects back to their default state-
+#+begin_src C++
+class Point {
+private:
+  int m_x{};
+  int m_y{};
+public:
+  // ...
+  void reset() {
+    // reset the point object
+    *this = Point{};
+  }
+};
+#+end_src
+
+#+RESULTS:
+** Classes and Header Files
+- Compilers need to see the full definition of class types in order to use them.
+- There's no "forward declaration" for class types.
+- Member functions CAN be forward declared like this-
+#+begin_src C++
+class Test {
+public:
+  void test() const;
+};
+
+void Test::test() const {
+  // something
+  int x;
+}
+
+int main() {
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+- When class types need to be used in multiple files, the following can be done-
+  1. The class definition with its member variables and /forward declarations/ of member functions is defined in a header file with the same name as the class.
+  2. All the member functions are defined in a cpp file having the same name as that of the header file.
+  3. Trivial member functions like getters can be defined inside the class definition.
+- You can also make the member functions ~inline~ and define them in the single header file, however, this is not a recommended practice.
+** Nested Types
+- Class types can have nested types like this-
+#+begin_src C++
+class Fruit {
+  public:
+    enum Type {
+      orange, apple, banana
+    };
+  private:
+    Type m_type {orange};
+    bool m_eaten {false};
+  public:
+    Fruit() = default;
+    Fruit(Type t, bool eaten) : m_type{t}, m_eaten{eaten} {};
+};
+#+end_src
+- The enum Type has been made public and can be accessed via ~Fruit::Type~ and its enumerators can be accessed like this- ~Fruit:apple~.
+- We've used ~enum~ instead of ~enum class~ because classes have their own scope so we don't need to worry about polluting the global scope.
+- You can also use ~typedef~ and type aliases in a similar way to the above.
+** Destructors
+- When an object of a non-aggregated class type is destroyed, a special member function called the destructor is called automatically before hand.
+- Destructors, just like constructors, have special rules-
+  1. It should have the same name as that of the class /but/ prefixed with a tilde =~=.
+  2. It cannot take any arguments.
+  3. It cannot return anything.
+#+begin_src C++ :results drawer
+#include <iostream>
+
+class Test {
+public:
+  Test() {
+    std::cout << "Created object" << std::endl;
+  }
+  ~Test() {
+    std::cout << "Destroyed object" << std::endl;
+  }
+};
+
+int main() {
+  Test t;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+:results:
+Created object
+Destroyed object
+:end:
