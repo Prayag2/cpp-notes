@@ -2707,9 +2707,266 @@ int main() {
   return 0;
 }
 #+end_src
+** Class Templates with Member Functions
+#+begin_src C++
+#include <iostream>
+
+template <typename T>
+class Pair {
+    private:
+        T m_first {};
+        T m_second {};
+    public:
+        Pair(T first, T second) : m_first{first}, m_second{second} {};
+};
+
+int main() {
+    Pair<int> p {1, 2};
+    return 0;
+}
+#+end_src
+
+- Since ~T~ might be expensive to copy, it's recommended to use ~const T&~ for the constructor parameters.
+** Static Members
+- Static members of a class type in C++ are shared across all the objects instantiated from that class type.
+#+begin_src C++
+#include <iostream>
+
+struct Test {
+    static int test;
+};
+
+// initialize test to 1
+// because static members exist independently of the objects instantiated from the class type,
+// they can be accessed anytime using the scope resolution operator
+int Test::test{1};
+
+int main() {
+    Test foo{};
+    Test bar{};
+
+    foo.test = 2;
+
+    std::cout << bar.test << std::endl;
+    return 0;
+}
+#+end_src
 
 #+RESULTS:
-:results:
-Created object
-Destroyed object
-:end:
+: 2
+
+- Static members can be accessed even before any object is initialized.
+- When we declare a static member variable inside a class, it's like forward declaring it (but different).
+- You must explicitly define the global variables outside the class just like we're doing in the above example.
+- You should not instantiate static members inside header files, only put them in ~.cpp~ files, because if the header is included more than once, you'll get multiple definitions of the same variable (violation of ODR, compile error).
+#+begin_quote
+
+You can also initialize static members inside the class definition itself but only if it's one of the following:
+1. It is a ~const~ variable
+2. It is a ~constexpr~ variable
+3. It is an ~inline~ variable
+#+end_quote
+** Static Member Functions
+- Member functions can also be defined as static. They can be used to make access functions for *private* member variables.
+#+begin_src C++
+#include <iostream>
+class Test {
+  private:
+    static const int m_id{10};
+  public:
+    static int getID() {return m_id;};
+    static void test();
+};
+
+// defining static functions outside
+// no need to specify "static" here
+void Test::test() {
+    std::cout << "hey" << std::endl;
+}
+
+int main() {
+    // the function is being accessed without
+    std::cout << Test::getID() << std::endl;
+    Test::test();
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+|  10 |
+| hey |
+
+- Static member functions do not have a ~*this~ pointer because they're not associated with any object.
+** Friend Functions
+- A friend function is a function (may it be a member or a non-member function) that can access all private and protected members of a class as if it was a member of that class.
+#+begin_src C++
+#include <iostream>
+
+class Point {
+    private:
+        int m_x {};
+        int m_y {};
+    public:
+        Point (int x, int y) : m_x{x}, m_y{y} {};
+
+        friend void print(const Point& p);
+};
+
+// the outsider function which is considered a "friend"
+void print(const Point& p) {
+    std::cout << p.m_x << "," << p.m_y << std::endl;
+}
+
+int main() {
+    Point point{4,5};
+    print(point);
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 4 | 5 |
+
+- You should prefer using non-friend functions over friend functions.
+- Friend functions don't have a ~*this~ pointer.
+** Friend Class
+- Similar to friend functions, a friend class can access private and protected members of another class.
+#+begin_src C++
+#include <iostream>
+
+class One {
+    private:
+        int m_x {5};
+    public:
+        One() = default;
+
+        // making friends with Two :)
+        friend class Two;
+};
+
+// the friend class
+class Two {
+    public:
+        static void test(const One& o) {
+            std::cout << o.m_x << std::endl;
+        }
+};
+
+int main() {
+    One obj{};
+
+    Two::test(obj);
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5
+- If class A is a friend of B, it doesn't mean that class B is also a friend of A!
+** Ref Qualifiers
+- When returning values by reference or by value from member functions, we can get stuck in a difficult situation-
+  1. If the function returns by value (rvalue), it can be used safely anywhere but might be inefficient to copy.
+  2. If the function returns by reference (lvalue), it's faster but can result in undefined behaviour (if the obj is destroyed).
+- We can overload functions in C++ classes to specify different behaviour based on the context (one where implicit object is an lvalue and another one in which the implicit object is an rvalue).
+#+begin_src C++
+//  & qualifier overloads function to match only lvalue implicit objects, returns by reference
+const auto& getName() const & { return m_name; }
+
+// && qualifier overloads function to match only rvalue implicit objects, returns by value
+auto getName() const && { return m_name; }
+#+end_src
+
+#+begin_quote
+
+Use of ref qualifiers is not recommended for a few reasons-
+1. Most developers don't know about this so this can cause errors or inefficiencies in use.
+2. Use of this can be prevented easily by using good practices.
+#+end_quote
+* Vectors
+- ~std::vector~ is one of the container classes in C++ that implements an array.
+#+begin_src C++
+#include <vector>
+
+int main() {
+
+    // specifying the type
+    std::vector<int> nums {1,2,3,4};
+
+    // type deduction based on CTAD (preferred)
+    std::vector vowels {'a', 'e', 'i', 'o', 'u'};
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+- The container classes use a special type of constructor called the "list constructor" to initialize the elements.
+- Passing an invalid index to ~operator[]~ to access elements will cause undefined behaviour since this operator does not do any checking.
+** Constructing arrays of specific length
+- ~std::vector~ has a constructor for this- ~explicit std::vector<T>(int)~
+#+begin_src C++
+std::vector<int> zeroes(10); // this will create an array of 10 zeroes (value initialized)
+#+end_src
+- This constructor /must/ be called using direct initialization and *not* direct-list initialization.
+** ~const~ and ~constexpr~ vectors
+- Vectors can be made ~const~, and such vectors can't be modified later.
+- ~const~ vectors must be initialized.
+- Non-const vectors can NOT contain const values so something like this won't compile: ~std::vector<const int> nums {1,2,3,4};~
+- Vectors can *not* be made ~constexpr~. You can use ~std::array~ for that.
+** Size of a vector
+- You can get the number of elements in a vector by using the ~size()~ member function of the vector object.
+#+begin_src C++
+#include <vector>
+#include <iostream>
+
+int main() {
+    std::vector nums {1,2,3,4,5};
+    std::cout << nums.size() << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 5
+- You can also use the *non-member* function ~std::size~ to get the size of any type of array: ~std::size(myArr)~.
+- C++20 introduced a non-member ~std::ssize~ function which returns the size of an array as a *signed* type.
+** Accessing elements of a vector
+- When we use ~operator[]~ to access elements of an array, there's no bound checking. Accessing non existing indices leads to undefined behaviour.
+- We can use the ~.at()~ member function to access elements with runtime bounds checking.
+- We can use ~constexpr int~ variables to access elements without getting narrowing conversion warnings (because ~std::size_t~ is required).
+- We should use ~std::size_t~ for iterations and accessing elements but this is an unsigned type and might not always be desirable..
+- If we want, we can use ~int~ or ~std::ptrdiff_t~ (when the number of elements is large) to access elements.
+** Passing Vectors
+- When passing vectors to functions, their full type must be speficied-
+#+begin_src C++
+void foo(const std::vector<int>& myVector);
+#+end_src
+- We prefer passing them by reference.
+** Move Semantics
+- These are the rules which determine how the data from one object is moved to another object.
+- Moving data, i.e., transferring ownership, to other objects is much faster than copying it.
+- When move semantics is invoked, any data that can be moved is moved while others are copied.
+- ~std::string~ and ~std::vector~, both support move semantics, so they CAN be safely passed by VALUE!!!
+- Move semantics are invoked automatically for supported types.
+** Range Based For Loop
+#+begin_src C++
+#include <iostream>
+#include <vector>
+int main() {
+    std::vector nums {1,2,3,4,5}; // CTAD to deduce type of template parameter
+
+    for (const auto& num : nums) {
+        std::cout << num << std::endl;
+    }
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 1 |
+| 2 |
+| 3 |
+| 4 |
+| 5 |
+
+- We should use the ~auto~ keyword to deduce the type in the loop.
