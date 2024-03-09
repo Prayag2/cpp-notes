@@ -2932,7 +2932,7 @@ int main() {
 - C++20 introduced a non-member ~std::ssize~ function which returns the size of an array as a *signed* type.
 ** Accessing elements of a vector
 - When we use ~operator[]~ to access elements of an array, there's no bound checking. Accessing non existing indices leads to undefined behaviour.
-- We can use the ~.at()~ member function to access elements with runtime bounds checking.
+- We can (but should not) use the ~.at()~ member function to access elements with runtime bounds checking.
 - We can use ~constexpr int~ variables to access elements without getting narrowing conversion warnings (because ~std::size_t~ is required).
 - We should use ~std::size_t~ for iterations and accessing elements but this is an unsigned type and might not always be desirable..
 - If we want, we can use ~int~ or ~std::ptrdiff_t~ (when the number of elements is large) to access elements.
@@ -2946,7 +2946,7 @@ void foo(const std::vector<int>& myVector);
 - These are the rules which determine how the data from one object is moved to another object.
 - Moving data, i.e., transferring ownership, to other objects is much faster than copying it.
 - When move semantics is invoked, any data that can be moved is moved while others are copied.
-- ~std::string~ and ~std::vector~, both support move semantics, so they CAN be safely passed by VALUE!!!
+- ~std::string~ and ~std::vector~, both support move semantics, so they can safely be /returned/ by value in functions.
 - Move semantics are invoked automatically for supported types.
 ** Range Based For Loop
 #+begin_src C++
@@ -2970,3 +2970,85 @@ int main() {
 | 5 |
 
 - We should use the ~auto~ keyword to deduce the type in the loop.
+** Resizing Vectors
+- Vectors are dynamic arrays.
+- They can be resized using the ~resize()~ member function.
+#+begin_src C++
+std::vector nums {1,2,3}; // 3 elements
+nums.resize(5); // now stores 5 elements
+#+end_src
+- We can get the capacity of a vector, which is the number of elements it /can hold/ using the ~capacity()~ member function.
+- Resizing works by first acquiring new memory space, *copying* existing elements and deleting the old memory.
+- The above is the reason that resizing is expensive!
+#+begin_quote
+
+Resizing a vector to be smaller will only decrease its length, and not its capacity.
+#+end_quote
+** Stacks
+- Just like stacks of pizzas and books.
+- You can add/remove items only from the top.
+- Order of insertion/deletion is *last-in, first-out (LIFO)*.
+- The last plate added onto the stack will be the first plate that is removed.
+*** The Stack Interface
+- Vectors can behave like stacks.
+- There are some built-in member functions in vectors
+  1. ~push_back()~: push elements
+  2. ~pop_back()~: pop elements
+  3. ~back()~: peek the top element
+  4. ~emplace_back()~: push elements (more efficient)
+- The ~push_back~ and ~pop_back~ functions will increment the length of the vector, and reallocate memory if necessary.
+- The ~resize~ method changes the capacity as well as the length.
+- To increase only the capacity (but not the length) we can use the ~reserve()~ method.
+
+#+begin_quote
+
+Use ~emplace_back()~ when you need to push temporary objects of class types or anything to a vector and use ~push_back()~ when you need to push anything else to a vector.
+#+end_quote
+* Fixed Size Arrays
+- The primary reason why we should not use ~std::vector~ everywhere is that they can't be made ~constexpr~.
+- ~constexpr~ arrays are much more performant.
+** ~std::array~
+#+begin_src C++
+#include <array>
+#include <vector>
+
+int main() {
+    constexpr int len {5};
+    std::array<int, len> myArr{}; // array with 5 elements (direct list initialization)
+    std::array<int, 5> myArr2 = {}; // copy list initialization
+
+    const std::array<int, 5> myArr3 {1,2,3,4,5}; // all elements are const (even though not specified in the template argument)
+
+    std::vector<int> myArr4(5); // vector with 5 elements
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+- Length of a standard array must be a constant expression. It can either be an integer literal, ~constexpr~ variable or an unscoped enum.
+- ~std::array~ is an aggregate type, meaning it has no constructors and it is initialized using aggregate initialization.
+- Don't forget that in some situations the compiler will treat ~const~ expressions as ~constexpr~ so ~const~ also works!
+
+#+begin_quote
+
+If you're using an ~std::array~ without marking it as ~constexpr~ consider using a vector instead lol
+#+end_quote
+- The second template argument is a non-type template argument of type ~std::size_t~ which must be ~constexpr~.
+- Since this value must be ~constexpr~, we can use any signed-type and the compiler will convert it without any conversion warnings!
+- We can use ~std::get~ non-member function to do compile-time bounds checking (unlike ~.at()~ member function which does runtime bounds checking).
+#+begin_src C++
+#include <iostream>
+#include <array>
+
+int main() {
+    constexpr std::array myNums {9,8,7,6,5}; // CTAD
+
+    constexpr int index {3};
+    std::cout << std::get<index>(myNums) << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 6
