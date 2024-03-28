@@ -2070,6 +2070,17 @@ int main() {
 #+end_src
 
 #+RESULTS:
+* Libraries
+** Static Libraries
+- Also known as "archives".
+- These are compiled and linked directly to our program.
+- On Windows, they typically have extension ~.lib~ and on Unix they have extension ~.a~.
+- One downside is that each executable using a static library has its own version of it, causing wasted space.
+** Dynamic Libraries
+- These become part of your program at runtime!
+- Many programs can use the same library.
+- They remain separate from the compiled binary.
+- On Windows, they have extension ~.dll~ and on Linux they have extension ~.so~ (shared object).
 * Object Oriented Programming
 ** Classes
 *** Introduction
@@ -3052,3 +3063,152 @@ int main() {
 
 #+RESULTS:
 : 6
+** ~std::reference_wrapper~
+- You can neither make an array nor a vector of references in C++.
+- Something like this won't work: ~std::vector<int&> {a, b, c};~
+- This is applicable to all array types.
+- ~std::reference_wrapper~ is a class template which behaves like a modifiable lvalue reference to T (its template argument).
+#+begin_src C++
+#include <iostream>
+#include <functional> // for std::reference_wrapper
+#include <array>
+
+int main() {
+    int x {1};
+    int y {2};
+    int z {3};
+
+    std::array<std::reference_wrapper<int>, 3> arr {x, y, z};
+    std::cout << arr[0].get() << std::endl; // we must use the get member function
+
+    arr[0].get() = 5; // reassigning
+
+    std::cout << arr[0].get() << std::endl; // we must use the get member function
+
+    return 0;
+}
+#+end_src
+
+- We can use ~std::ref~ and ~std::cref~ as aliases to ~std::reference_wrapper~ and ~const std::reference_wrapper~ respectively.
+** Multi-Dimensional Arrays
+- We /need/ to use double braces when initializing multi-dimensional arrays.
+#+begin_src C++
+#include <iostream>
+#include <array>
+
+int main() {
+    constexpr std::array<const std::array<int, 3>, 4> myArr {{
+    {1, 2, 3},
+    {1, 2, 3},
+    {1, 2, 3},
+    {1, 2, 3}}};
+
+    for (const auto& row : myArr) {
+        for (const auto& x : row)
+            std::cout << x << " ";
+        std::cout << std::endl;
+    }
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 1 | 2 | 3 |
+| 1 | 2 | 3 |
+| 1 | 2 | 3 |
+| 1 | 2 | 3 |
+
+- We can use /alias templates/ to make our lives better!
+#+begin_src C++ :std=c++20
+#include <iostream>
+#include <array>
+
+template <typename T, std::size_t Rows, std::size_t Cols>
+using Array2d = std::array<std::array<T, Cols>,Rows>;
+
+int main() {
+
+    Array2d myArr {{
+            {1, 2, 3},
+            {1, 2, 3},
+            {1, 2, 3},
+        }};
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+* Iterators
+- An iterator is an object designed to traverse through a container class.
+- The following is a very basic example of an iterator.
+#+begin_src C++
+#include <iostream>
+#include <array>
+
+int main() {
+    constexpr std::array<int, 5> arr = {1, 2, 3, 4, 5};
+    const int* ptr = &arr[0];
+    const int* end = ptr + arr.size();
+
+    while (ptr != end) {
+        std::cout << *ptr << std::endl;
+        ++ptr;
+    }
+    return 0;
+}
+#+end_src
+
+- The standard library provides member functions to get the beginning and end of a container class.
+- The ~begin()~ member function returns an iterator to the beginning of the container.
+- The ~end()~ member function returns an iterator to the end of the container.
+- The standard library also provides generic functions ~std::begin()~ and ~std::end()~ which can be used with C-style arrays.
+* Functions
+** Function Pointers
+- A function pointer is just a pointer that points to a function.
+- The syntax for declaring a function pointer is a bit tricky.
+  #+begin_src C++
+#include <iostream>
+int sum(int a, int b) {
+    return a+b;
+}
+
+
+int main() {
+    int (*sumPtr)(int, int){&sum};
+    std::cout << (*sumPtr)(1, 2) << std::endl;
+    std::cout << sumPtr(1, 2) << std::endl; // implicit dereference
+    return 0;
+}
+  #+end_src
+
+#+begin_quote
+
+Checkout clockwise/spiral rule or the right/left rule for understanding complex C/C++ declarations.
+https://c-faq.com/decl/spiral.anderson.html
+https://web.archive.org/web/20110818081319/http://ieng9.ucsd.edu/~cs30x/rt_lt.rule.html
+#+end_quote
+- Function parameters are resolved at compiled time while function pointers are resolved at runtime, therefore, default parameter *won't* work for function pointers
+- We can use type aliases to make function pointers look less scary.
+*** Passing Function Pointers
+#+begin_src C++
+#include <functional>
+// instead of doing this
+void myFunc(int(*funcPtr)(int, int)) {
+    funcPtr();
+}
+
+using GetSum = int(*)(int, int);
+
+// do this
+void myFunc(GetSum funcPtr) {
+    funcPtr();
+}
+
+// you can also do this (recommended)
+void myFunc(std::function<int(int, int)> funcPtr) {
+    funcPtr();
+}
+
+// or this
+using GetSum = std::function<int(int, int)>
+ #+end_src
