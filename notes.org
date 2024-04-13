@@ -3212,3 +3212,107 @@ void myFunc(std::function<int(int, int)> funcPtr) {
 // or this
 using GetSum = std::function<int(int, int)>
  #+end_src
+* Stack and Heap
+** Segments
+- Memory used by a program is divided into these areas called segments:
+  1. Code Segment: Where the compiled program sits in memory.
+  2. BSS Segment: Where zero-initialized global and static variables are stored.
+  3. Data Segment: Where initialized global and static variables are stored.
+  4. Heap: Where dynamically allocated variables are allocated from.
+  5. Call Stack: Where function parameters, local variables, and other function related information are stored.
+** Heap
+- Keeps track of dynamic memory allocation.
+#+begin_src C++
+int* ptr {new int}; // stored in the heap
+#+end_src
+- Allocating on a heap is *slow*.
+- Allocated memory *stays* in the heap until de-allocated or the application ends, which may cause memory leaks.
+- Allocated memory must be accessed through a pointer and pointer de-referencing is slower than using normal variables.
+- Heaps are larger than stacks (you can store large stuff in them).
+** Call Stack
+- When a function call is encountered, /it/ is pushed onto the call stack.
+- When the current function ends, /it/ is popped off the call stack.
+- Here, "it" is the stack frame, which holds information related to the function.
+- Allocating memory in the stack is fast.
+*** Stack Overflow
+- The size of the call stack is limited.
+- When too many information is stored in a stack, it results in stack overflow.
+* Ellipses
+- Allows you to specify that a function can take in any number of arguments.
+- You should *avoid* using them.
+- They don't carry the count information (you have to manually pass it) and they don't have type information.
+#+begin_src C++
+#include <iostream>
+#include <cstdarg>
+
+int sum(int count, ...) {
+    int sm {0};
+    std::va_list list;
+
+    // first argument is the list, second is the last argument before the ellipsis
+    va_start(list, count);
+
+    for (int i {0}; i < count; ++i) {
+        sm += va_arg(list, int);
+    }
+
+    va_end(list);
+
+    return sm;
+}
+
+int main() {
+    std::cout << sum(3, 1, 2, 3) << std::endl;
+    std::cout << sum(5, 1, 2, 3, 4, 5) << std::endl;
+    std::cout << sum(10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) << std::endl;
+
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+|  6 |
+| 15 |
+| 55 |
+* Lambda Functions
+- Lambda functions are anonymous functions that can be used to create functions on the fly.
+#+begin_src C++
+// Syntax
+[ captureClause (optional) ] ( parameters (entirely optional) ) -> returnType (optional, auto is assumed) { body }
+#+end_src
+
+- The following is a valid lambda function
+ #+begin_src C++
+[] {}
+ #+end_src
+** Passing Lambda Functions
+#+begin_src C++
+// Case 1: use a `std::function` parameter
+void repeat1(int repetitions, const std::function<void(int)>& fn)
+{
+    for (int i{ 0 }; i < repetitions; ++i)
+        fn(i);
+}
+
+// Case 2: use a function template with a type template parameter
+template <typename T>
+void repeat2(int repetitions, const T& fn)
+{
+    for (int i{ 0 }; i < repetitions; ++i)
+        fn(i);
+}
+
+// Case 3: use the abbreviated function template syntax (C++20)
+void repeat3(int repetitions, const auto& fn)
+{
+    for (int i{ 0 }; i < repetitions; ++i)
+        fn(i);
+}
+
+// Case 4: use function pointer (only for lambda with no captures)
+void repeat4(int repetitions, void (*fn)(int))
+{
+    for (int i{ 0 }; i < repetitions; ++i)
+        fn(i);
+}
+#+end_src
