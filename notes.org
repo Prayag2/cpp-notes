@@ -2870,9 +2870,6 @@ int main() {
     return 0;
 }
 #+end_src
-
-#+RESULTS:
-: 5
 - If class A is a friend of B, it doesn't mean that class B is also a friend of A!
 ** Ref Qualifiers
 - When returning values by reference or by value from member functions, we can get stuck in a difficult situation-
@@ -3285,6 +3282,7 @@ int main() {
  #+begin_src C++
 [] {}
  #+end_src
+- Lambdas can only access global identifiers, entities known at compile time or entities with static storage duration.
 ** Passing Lambda Functions
 #+begin_src C++
 // Case 1: use a `std::function` parameter
@@ -3316,3 +3314,207 @@ void repeat4(int repetitions, void (*fn)(int))
         fn(i);
 }
 #+end_src
+** The Capture Clause
+- The capture clause is used to give indirect access to the variables in the surrounding scope.
+- By indirect access, we mean that a copy of that variable is created for access. Even the data type may be different.
+#+begin_src C++
+#include <iostream>
+
+int main() {
+    const char* name {"Prayag"};
+
+    std::cout << [](){return name;}() << std::endl; // can't access name
+    std::cout << [name](){return name;}() << std::endl; // okay
+}
+#+end_src
+- The variables accessed through captures are ~const~ and can not be modified.
+- We can mark the lambda ~mutable~ to allow modifying the captured variables.
+#+begin_src C++
+#include <iostream>
+#include <string>
+int main() {
+    using namespace std::string_literals;
+    std::string name {"Prayag"s};
+    [name]() mutable {
+        // Will only modify the "copy" created after capturing
+        name = "Parin";
+        std::cout << name << std::endl;
+    }();
+    std::cout << name << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| Parin  |
+| Prayag |
+** Capture by Reference
+- Will reference to the original variable instead of a copy.
+- Non-const by default.
+
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+int main() {
+    using namespace std::string_literals;
+    std::string name {"Prayag"s};
+    int age {20};
+
+    // no need of "mutable" since these are non-const by default
+    [&name, age]() {
+        name = "Parin";
+        std::cout << name << std::endl;
+        std::cout << age << std::endl;
+    }();
+
+    std::cout << name << std::endl;
+    std::cout << age << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| Parin |
+|    20 |
+| Parin |
+|    20 |
+** Default Capture
+- Capture all variables used in the lambda block automatically.
+#+begin_src C++
+#include <iostream>
+#include <string>
+
+int main() {
+    using namespace std::string_literals;
+    std::string name {"Prayag"s};
+
+    // default capture by value
+    [=]() mutable {
+        name = "Parin";
+        std::cout << name << std::endl;
+    }();
+
+    std::cout << name << std::endl;
+
+    // default capture by reference
+    [&]() {
+        name = "Parin";
+        std::cout << name << std::endl;
+    }();
+
+    std::cout << name << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| Parin  |
+| Prayag |
+| Parin  |
+| Parin  |
+** Defining Variables in Capture Block
+- No need to specify the type of the variable in the capture block.
+#+begin_src C++
+#include <iostream>
+auto myFunc {[age{5}](){
+    std::cout << "Age is " << age << std::endl;
+}};
+int main() {
+    myFunc();
+    return 0;
+}
+#+end_src
+* Operator Overloading
+- In C++, operators are implemented as functions. For example, ~x + y~ is equivalent to ~operator+(x, y)~.
+- Almost all operators can be overloaded in C++ to work with different data types except:
+  1. Conditional: ~?:~
+  2. ~sizeof~
+  3. Scope: ~::~
+  4. Member selection: ~.~
+  5. Pointer member selector: ~.*~
+  6. ~typeid~
+  7. Casting operators
+- You can only overload operators that exist. You can not create your own operators.
+- To overload an operator, atleast one of the operands must be a user-defined type.
+** Overloading using ~friend~ functions
+#+begin_src C++
+#include <iostream>
+class Fraction {
+    private:
+        int m_numerator {0};
+        int m_denominator {1};
+    public:
+        Fraction(int p, int q) : m_numerator{p}, m_denominator{q} {}
+
+        // Overloading + operator
+        friend Fraction operator+(const Fraction& a, const Fraction& b);
+
+        void print() const {
+            std::cout << m_numerator << "/" << m_denominator << std::endl;
+        }
+};
+
+Fraction operator+(const Fraction& a, const Fraction& b) {
+    int num {a.m_numerator*b.m_denominator+b.m_numerator*a.m_denominator};
+    int den {a.m_denominator*b.m_denominator};
+    return Fraction{num, den};
+}
+
+int main() {
+    Fraction f1{4,5};
+    Fraction f2{5,3};
+
+    Fraction sum{f1+f2};
+    sum.print();
+
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 37/15
+** Overloading using normal functions
+#+begin_src C++
+#include <iostream>
+class Fraction {
+    private:
+        int m_numerator {0};
+        int m_denominator {1};
+    public:
+        Fraction(int p, int q) : m_numerator{p}, m_denominator{q} {}
+
+        int p() const {
+            return m_numerator;
+        }
+
+        int q() const {
+            return m_denominator;
+        }
+
+        void print() const {
+            std::cout << m_numerator << "/" << m_denominator << std::endl;
+        }
+};
+
+// A normal function, accessing members using getters
+Fraction operator+(const Fraction& a, const Fraction& b) {
+    int num {a.p()*b.q() + b.p()*a.q()};
+    int den {a.q()*b.q()};
+    return Fraction{num, den};
+}
+
+int main() {
+    Fraction f1{4,5};
+    Fraction f2{5,3};
+
+    Fraction sum{f1+f2};
+    sum.print();
+
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 37/15
+- Prefer these over friend functions.
