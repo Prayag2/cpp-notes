@@ -3518,3 +3518,94 @@ int main() {
 #+RESULTS:
 : 37/15
 - Prefer these over friend functions.
+** Overloading I/O Operators
+1. We can overload the ~<<~ operator in the same way as above, only the left operand is fixed.
+#+begin_src C++
+#include <iostream>
+
+class Fraction {
+    private:
+        int m_p {0};
+        int m_q {1};
+    public:
+        Fraction (int p, int q) : m_p (p), m_q(q) {};
+
+        // This is a non-member function even though it is defined inside the class
+        friend std::ostream& operator<<(std::ostream& out, const Fraction& frac) {
+            out << frac.m_p << "/" << frac.m_q;
+            return out;
+        };
+
+        friend std::istream& operator>>(std::istream& in, const Fraction& frac) {
+            in >> frac.m_p;
+            in >> frac.m_q;
+        }
+};
+
+int main() {
+    Fraction a{4,5};
+    std::cout << "The fraction is " << a << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: The fraction is 4/5
+** Overloading using member functions
+#+begin_src C++
+#include <iostream>
+class Point {
+    private:
+        int m_x {};
+        int m_y {};
+    public:
+        Point (int x, int y) : m_x{x}, m_y{y} {}
+
+        Point operator+(Point b) const {
+            return Point {b.m_x + m_x, b.m_y + m_y};
+        };
+
+};
+int main() {
+    Point a{3, 4};
+    Point b {a + Point{1,2}};
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+
+- You can not overload certain operators using member functions. For example, the ~<<~ operator. This is because the overloaded operator must be added as a member of the left operand. Here, the left hand operand is ~std::ostream~ which is a part of the standard library and we can't modify it.
+
+#+begin_quote
+
+The following rules of thumb can help you determine which form is best for a given situation:
+
+1. If you’re overloading assignment (=), subscript ([]), function call (()), or member selection (->), do so as a member function.
+2. If you’re overloading a unary operator, do so as a member function.
+3. If you’re overloading a binary operator that does not modify its left operand (e.g. operator+), do so as a normal function (preferred) or friend function.
+4. If you’re overloading a binary operator that modifies its left operand, but you can’t add members to the class definition of the left operand (e.g. operator<<, which has a left operand of type ostream), do so as a normal function (preferred) or friend function.
+5. If you’re overloading a binary operator that modifies its left operand (e.g. operator+=), and you can modify the definition of the left operand, do so as a member function.
+#+end_quote
+** Overloading unary operators
+#+begin_src C++
+#include <iostream>
+class Cents {
+    private:
+        int m_cents {0};
+    public:
+        Cents (int val) : m_cents{val} {};
+
+        bool operator!() const {
+            return m_cents == 0;
+        }
+};
+int main() {
+    std::cout << std::boolalpha; // causes bools to print as "true" or "false"
+    std::cout << !Cents{0} << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: true
