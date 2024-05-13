@@ -2561,7 +2561,7 @@ public:
 
 Make any constructor that accepts a single argument explicit by default. If an implicit conversion between types is both semantically equivalent and performant, you can consider making the constructor non-explicit.
 
-Do not make copy or move constructors explicit, as these do not perform conversions.
+Do not make "copy" or "move" constructors explicit, as these do not perform conversions.
 #+end_quote
 
 * More on Classes
@@ -3003,7 +3003,7 @@ Resizing a vector to be smaller will only decrease its length, and not its capac
   1. ~push_back()~: push elements
   2. ~pop_back()~: pop elements
   3. ~back()~: peek the top element
-  4. ~emplace_back()~: push elements (more efficient)
+  4. ~emplace_back()~: push elements (more efficient when pushing objects)
 - The ~push_back~ and ~pop_back~ functions will increment the length of the vector, and reallocate memory if necessary.
 - The ~resize~ method changes the capacity as well as the length.
 - To increase only the capacity (but not the length) we can use the ~reserve()~ method.
@@ -3427,7 +3427,7 @@ int main() {
 #+end_src
 * Operator Overloading
 - In C++, operators are implemented as functions. For example, ~x + y~ is equivalent to ~operator+(x, y)~.
-- Almost all operators can be overloaded in C++ to work with different data types except:
+- Almost all operators can be overloaded in C++ to work with different data types *except*:
   1. Conditional: ~?:~
   2. ~sizeof~
   3. Scope: ~::~
@@ -3609,3 +3609,319 @@ int main() {
 
 #+RESULTS:
 : true
+** Overloading increment/decrement operators
+- Prefix ~--~ and ~++~ operators are overloaded normally.
+- Postfix ~--~ and ~++~ operators have an ~int~ parameter set (even though it is not used).
+#+begin_src C++
+// int parameter means this is the postfix operator, for example, b++;
+Digit Digit::operator++(int)
+{
+    // Create a temporary variable with our current digit
+    Digit temp{*this};
+
+    // Use prefix operator to increment this digit
+    ++(*this); // apply operator
+
+    // return temporary result
+    return temp; // return saved state
+}
+#+end_src
+** Overloading the subscript operator
+#+begin_src C++
+class IntList
+{
+private:
+    int m_list[10]{};
+
+public:
+    int& operator[] (int index)
+    {
+        return m_list[index];
+    }
+};
+
+#+end_src
+** Overloading the parenthesis operator
+- Unlike other operators, where the number of parameters is fixed, the parenthesis operator can accept any number of arguments.
+- This operator must be defined as a member function though.
+#+begin_src C++ :results drawer
+#include <iostream>
+
+class Matrix {
+    private:
+        int m_mat[3][3] {};
+    public:
+        // If the object is not const, the function can return an lvalue reference
+        int& operator()(int row, int col) {
+            return m_mat[row][col];
+        }
+        // If the object is const, the function must be const and it cannot return an lvalue reference
+        int operator()(int row, int col) const {
+            return m_mat[row][col];
+        }
+
+        void print() const {
+            for (std::size_t row {0}; row < 3; row++) {
+                for (std::size_t col {0}; col < 3; col++) {
+                    std::cout << m_mat[row][col] << (col == 2 ? "" : ", ");
+                }
+                std::cout << std::endl;
+            }
+        }
+};
+
+int main() {
+    Matrix a{};
+    a(2,2) = 5;
+    a(1,0) = 2;
+    a.print();
+}
+#+end_src
+
+#+RESULTS:
+:results:
+0, 0, 0
+2, 0, 0
+0, 0, 5
+:end:
+** Functors
+- We can implement "functors" by overloading the parenthesis operator.
+- Functors are just classes that operate like functions.
+- They hold the advantage of being able to store persistent data inside them because they are classes.
+#+begin_src C++
+#include <iostream>
+class Player {
+    private:
+        double m_money{0};
+    public:
+        void operator()(double i) {
+            m_money += i;
+        }
+        double getMoney() const {
+            return m_money;
+        }
+};
+
+int main() {
+    Player a {};
+    a(10); // using it like a function call
+    a(4.2);
+    a(9.2);
+    std::cout << a.getMoney();
+    return 0;
+}
+#+end_src
+** Overloading typecasts
+- In many cases, we may need to allow the user to typecast our classes. For example, a "Cents" class may be typecasted into an ~int~.
+- To overload the typecast operator, we don't specify the return type. For example-
+#+begin_src C++
+#include <iostream>
+class Cents {
+    private:
+        int m_cents {0};
+    public:
+        Cents(int x) : m_cents{x} {}
+
+        // overloading typecasting to "int"
+        operator int() const {
+            return m_cents;
+        }
+
+        explicit operator double() const {
+            return static_cast<double>(m_cents);
+        }
+};
+
+int main() {
+    Cents a {10};
+    std::cout << static_cast<int>(a) << std::endl;
+    std::cout << static_cast<double>(a) << std::endl;
+}
+#+end_src
+- When the compiler feels the need to do an implicit cast, it can do that using our overloaded method.
+- We can specify that we will only allow explicit typecasting, for example, using the ~static_cast~ operator.
+** Overloading the assignment operator
+- This must be implemented as a member function only.
+- We can return ~*this~ pointer from the overloaded function to add the ability to chain the assignment.
+#+begin_src C++
+#include <iostream>
+
+class Fraction {
+    private:
+        int m_num{0};
+        int m_den{1};
+    public:
+        Fraction(int p=0, int q=1) : m_num{p}, m_den{q} {};
+
+        friend std::ostream& operator<<(std::ostream& out, const Fraction& fr) {
+            out << fr.m_num << "/" << fr.m_den;
+            return out;
+        }
+
+        Fraction& operator= (const Fraction& fr) {
+            // Checking for self assignment
+            // This is not necessary in this case but still recommended!
+            // It's necessary when self assignment can cause
+            // problems like in the case of pointers
+            if (this == &fr)
+                return *this;
+
+            m_num = fr.m_num;
+            m_den = fr.m_den;
+
+            return *this;
+        }
+};
+
+int main() {
+    Fraction a{4,5};
+    Fraction b{5,6};
+    Fraction c{};
+    c = b = a;
+    std::cout << c << std::endl;
+    std::cout << b << std::endl;
+    std::cout << a << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+| 4/5 |
+| 4/5 |
+| 4/5 |
+** Shallow and Deep Copy
+*** Shallow Copy
+- C++ provides a default copy constructor along with a default assignment operator for every class.
+- This does not cause any problems for simple classes, but classes where dynamic memory allocation is involved, it might cause problems.
+- This is called shallow copy.
+- Look at this example for details: [[https://www.learncpp.com/cpp-tutorial/shallow-vs-deep-copying/][learncpp.com]]
+*** Deep Copy
+- Deep copy is used for dynamic memory allocation.
+#+begin_src C++
+// assumes m_data is initialized
+void MyString::deepCopy(const MyString& source)
+{
+    // first we need to deallocate any value that this string is holding!
+    delete[] m_data;
+
+    // because m_length is not a pointer, we can shallow copy it
+    m_length = source.m_length;
+
+    // m_data is a pointer, so we need to *deep copy* it if it is non-null
+    if (source.m_data)
+    {
+        // allocate memory for our copy
+        m_data = new char[m_length];
+        // do the copy
+        for (int i{ 0 }; i < m_length; ++i)
+            m_data[i] = source.m_data[i];
+    }
+    else
+        m_data = nullptr;
+}
+
+// Copy constructor
+MyString::MyString(const MyString& source)
+{
+    deepCopy(source);
+}
+#+end_src
+* Dynamic Memory Allocation
+** Using the ~new~ keyword
+- You can allocate memory to a pointer dynamically using the ~new~ keyword just like ~malloc()~ in C.
+#+begin_src C++
+  #include <iostream>
+
+  int main() {
+
+    // create an uninitialized variable
+    int* n {new int};
+    ,*n = 5;
+
+    // create an initialized variable
+    int* m {new int{5}};
+    std::cout << *n << std::endl;
+    std::cout << *m << std::endl;
+
+    // return memory to the operating system
+    delete n;
+    delete m;
+
+    // make the pointer un-dangling
+    n = nullptr;
+    m = nullptr;
+
+    return 0;
+  }
+#+end_src
+
+#+RESULTS:
+| 5 |
+| 5 |
+- If, for some reason, the operating system fails to grant memory, an exception will be thrown.
+- We can tell ~new~ to return ~nullptr~ instead of throwing an error-
+  #+begin_src C++
+    int* n {new (std::nothrow) int{}};
+  #+end_src
+** Memory Leaks
+- Memory leaks are caused in two situations:
+  1. When a program does not free the memory of a pointer after it terminates.
+  2. When a pointer is reassigned to another address without deleting it first.
+** Arrays
+#+begin_src C++
+  #include <iostream>
+
+  int main() {
+    std::size_t size{5};
+    // std::cout >> "Enter size: ";
+    // std::cin << size;
+
+    int* array { new int[size] };
+
+    for (std::size_t i {0}; i < size; i += 2) {
+      array[i] = 6;
+      array[i+1] = 9;
+    }
+
+    for (std::size_t i {0}; i < size; i++)
+      std::cout << array[i] << std::endl;
+
+    // free the memory!
+    // You must use the [] to tell that there are multiple blocks to be cleaned
+    delete[] array;
+    return 0;
+  }
+#+end_src
+
+#+RESULTS:
+| 6 |
+| 9 |
+| 6 |
+| 9 |
+| 6 |
+
+- There's no built-in way to resize memory dynamically allocated to an array in C++. Use ~vector~s instead.
+** Void Pointers
+- Void pointers can be assigned to memory addresses holding objects of any data types.
+- Dereferencing void pointers is *illegal*.
+- You must cast the pointer to the actual data type before dereferencing.
+- The same goes when you want to delete a ~void~ pointer.
+- Pointer arithmetic is also not allowed on void pointers because it doesn't know the size of the memory blocks.
+#+begin_src C++
+  #include <iostream>
+
+  int main() {
+    // random variable
+    int num {5};
+
+    // our void pointer
+    void* ptr {&num};
+
+    // casting it to the correct data type before dereferencing
+    std::cout << *(static_cast<int*>(ptr)) << std::endl;
+    return 0;
+  }
+#+end_src
+
+#+RESULTS:
+: 5
