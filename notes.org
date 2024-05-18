@@ -3925,3 +3925,116 @@ MyString::MyString(const MyString& source)
 
 #+RESULTS:
 : 5
+* RAII
+- It is a programming technique, not specific to C++.
+- Full form is *Resource Acquisition is Initialization*.
+- It states that whenever a resource is acquired (memory, file, database handle, etc.) by an object, the resource is released as soon as the object is destroyed.
+- This is implemented using the concept of constructors and destructors in C++.
+#+begin_src C++
+  #include <iostream>
+
+  class Nums {
+    private:
+    int* m_arr{};
+    int m_length{};
+
+    public:
+    // Constructor
+    Nums(std::size_t length) {
+      m_arr = new int[length];
+      m_length = length;
+    }
+
+    // Destructor
+    ~Nums() {
+      delete m_arr[];
+    }
+  }
+
+  int main() {
+    return 0;
+  }
+#+end_src
+* Smart Pointers
+- In C++, whenever a resource is acquired, it must be released before terminating the program.
+- When using pointers, it can be hard to do this manually everytime (you might forget about it sometimes).
+- Smart pointers can be implemented for this.
+- A smart pointer is just a class that manages ownership and destruction of another pointer.
+#+begin_src C++
+  #include <iostream>
+
+  template <typename T>
+  class SmartPtr {
+  private:
+    T* ptr {nullptr};
+  public:
+    SmartPtr(T* p = nullptr) : ptr {p} {}
+
+    // copy constructor using move semantics
+    SmartPtr(SmartPtr& src) {
+      // transfering ownership
+      std::cout << "transfering ownership" << std::endl;
+      ptr = src.ptr;
+      src.ptr = nullptr;
+    }
+
+    // Assignment operator
+    SmartPtr& operator=(SmartPtr& src) {
+      std::cout << "transfering ownership" << std::endl;
+      if (this == &src) {
+        return *this;
+      }
+
+      delete ptr;
+      ptr = src.ptr;
+      src.ptr = nullptr;
+      return *this;
+    }
+
+    ~SmartPtr() {
+      delete ptr;
+    }
+
+    T& operator*() const {
+      return *ptr;
+    }
+    T* operator->() const {
+      return ptr;
+    }
+    bool isNull() {return ptr == nullptr;};
+  };
+
+  class Test {
+  public:
+    Test() {
+      std::cout << "Test created" << std::endl;
+    }
+    ~Test() {
+      std::cout << "Test destroyed" << std::endl;
+    }
+  };
+
+  int main() {
+    SmartPtr<Test> p1 {new Test()};
+    std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
+
+
+    SmartPtr<Test> p2 {p1};
+    std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
+    std::cout << (p2.isNull() ? "p2 is null" : "p2 is not null") << std::endl;
+    return 0;
+  }
+#+end_src
+
+#+RESULTS:
+| Test        | created   |      |      |
+| p1          | is        | not  | null |
+| transfering | ownership |      |      |
+| p1          | is        | null |      |
+| p2          | is        | not  | null |
+| Test        | destroyed |      |      |
+* RValue References
+- Rvalue references are declared using a double ampersand ~&&~. For example, ~int&& x {5}~.
+- These references hold rvalues only and can not be initialized using lvalues.
+- Whenever using a literal to initialize an rvalue reference, a copy is contructed.
+- Unlike normal expressions, where the temporary objects are destroyed after the end of the expression; here, the object's lifespan is increased until the end of the block.
