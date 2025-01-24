@@ -376,7 +376,13 @@ int main() {
 }
 #+end_src
 
+#+begin_src emacs-lisp
+(set-frame-parameter nil 'alpha-background 10)
+(add-to-list 'default-frame-alist '(alpha-background . 10))
+#+end_src
+
 #+RESULTS:
+: ((font . JetBrains Mono 14) (alpha-background . 80) (vertical-scroll-bars) (left-fringe . 10) (right-fringe . 10))
 * Constants and Strings
 ** Constant Expressions
 An expression that contains only compile time constants.
@@ -3961,80 +3967,177 @@ MyString::MyString(const MyString& source)
 - Smart pointers can be implemented for this.
 - A smart pointer is just a class that manages ownership and destruction of another pointer.
 #+begin_src C++
-  #include <iostream>
+#include <iostream>
 
-  template <typename T>
-  class SmartPtr {
-  private:
-    T* ptr {nullptr};
-  public:
-    SmartPtr(T* p = nullptr) : ptr {p} {}
+template <typename T>
+class SmartPtr {
+private:
+  T* ptr {nullptr};
+public:
+  SmartPtr(T* p = nullptr) : ptr {p} {}
 
-    // copy constructor using move semantics
-    SmartPtr(SmartPtr& src) {
-      // transfering ownership
-      std::cout << "transfering ownership" << std::endl;
-      ptr = src.ptr;
-      src.ptr = nullptr;
-    }
+  // copy constructor using move semantics
+  SmartPtr(SmartPtr& src) {
+    // transfering ownership
+    std::cout << "transfering ownership" << std::endl;
+    ptr = src.ptr;
+    src.ptr = nullptr;
+  }
 
-    // Assignment operator
-    SmartPtr& operator=(SmartPtr& src) {
-      std::cout << "transfering ownership" << std::endl;
-      if (this == &src) {
-        return *this;
-      }
-
-      delete ptr;
-      ptr = src.ptr;
-      src.ptr = nullptr;
+  // Assignment operator
+  SmartPtr& operator=(SmartPtr& src) {
+    std::cout << "transfering ownership" << std::endl;
+    if (this == &src) {
       return *this;
     }
 
-    ~SmartPtr() {
-      delete ptr;
-    }
-
-    T& operator*() const {
-      return *ptr;
-    }
-    T* operator->() const {
-      return ptr;
-    }
-    bool isNull() {return ptr == nullptr;};
-  };
-
-  class Test {
-  public:
-    Test() {
-      std::cout << "Test created" << std::endl;
-    }
-    ~Test() {
-      std::cout << "Test destroyed" << std::endl;
-    }
-  };
-
-  int main() {
-    SmartPtr<Test> p1 {new Test()};
-    std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
-
-
-    SmartPtr<Test> p2 {p1};
-    std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
-    std::cout << (p2.isNull() ? "p2 is null" : "p2 is not null") << std::endl;
-    return 0;
+    delete ptr;
+    ptr = src.ptr;
+    src.ptr = nullptr;
+    return *this;
   }
+
+  ~SmartPtr() {
+    delete ptr;
+  }
+
+  T& operator*() const {
+    return *ptr;
+  }
+  T* operator->() const {
+    return ptr;
+  }
+  bool isNull() {return ptr == nullptr;};
+};
+
+class Test {
+public:
+  Test() {
+    std::cout << "Test created" << std::endl;
+  }
+  ~Test() {
+    std::cout << "Test destroyed" << std::endl;
+  }
+};
+
+int main() {
+  SmartPtr<Test> p1 {new Test()};
+  std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
+
+
+  SmartPtr<Test> p2 {p1};
+  std::cout << (p1.isNull() ? "p1 is null" : "p1 is not null") << std::endl;
+  std::cout << (p2.isNull() ? "p2 is null" : "p2 is not null") << std::endl;
+  return 0;
+}
 #+end_src
 
 #+RESULTS:
-| Test        | created   |      |      |
-| p1          | is        | not  | null |
-| transfering | ownership |      |      |
-| p1          | is        | null |      |
-| p2          | is        | not  | null |
-| Test        | destroyed |      |      |
 * RValue References
 - Rvalue references are declared using a double ampersand ~&&~. For example, ~int&& x {5}~.
 - These references hold rvalues only and can not be initialized using lvalues.
 - Whenever using a literal to initialize an rvalue reference, a copy is contructed.
 - Unlike normal expressions, where the temporary objects are destroyed after the end of the expression; here, the object's lifespan is increased until the end of the block.
+* Move Constructors
+- Just like copy constructors, there are move constructors.
+- Copy constructors create a shallow/deep copy of the resource while move constructors simply transfer ownership of the provided resource.
+- Implementing move constructors is a good practice since it prevents copying in certain situations.
+#+begin_src cpp :wrap example :results raw
+#include <iostream>
+
+class Array {
+private:
+  int* m_arr {};
+  int m_size {};
+
+public:
+  Array(int n) {
+    m_arr = new int[n];
+    m_size = n;
+    for (int i = 0; i < n; i++) {
+      m_arr[i] = i+1;
+    }
+  }
+  // copy constructor (deep copy)
+  Array(const Array& arr) {
+    std::cout << "Copy constructor called" << std::endl;
+    m_size = arr.m_size;
+    m_arr = new int[m_size];
+    for (int i {0}; i < m_size; i++) {
+      m_arr[i] = arr.m_arr[i];
+    }
+  }
+
+  // move constructor (notice the &&)
+  Array(Array&& arr) {
+    // transfering ownership
+    std::cout << "Move constructor called" << std::endl;
+    m_size = arr.m_size;
+    m_arr = arr.m_arr;
+    arr.m_arr = nullptr;
+  }
+
+  // copy assignment
+  Array& operator=(const Array& arr) noexcept {
+    std::cout << "Copy assignment called" << std::endl;
+    if (&arr == this) {
+      return *this;
+    }
+
+    delete m_arr;
+
+    m_size = arr.m_size;
+    m_arr = new int[m_size];
+    for (int i = 0; i < m_size; i++) {
+      m_arr[i] = arr.m_arr[i];
+    }
+    return *this;
+  }
+
+  // move assignment
+  Array& operator=(Array&& arr) noexcept {
+    std::cout << "Move assignment called" << std::endl;
+    if (&arr == this) {
+      return *this;
+    }
+
+    delete m_arr;
+
+    m_size = arr.m_size;
+    m_arr = arr.m_arr;
+    arr.m_arr = nullptr;
+    return *this;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, const Array& arr) {
+    out << "[";
+    if (arr.m_arr != nullptr) {
+      for (int i = 0; i < arr.m_size; i++) {
+        out << arr.m_arr[i];
+        if (i < arr.m_size-1) out << ", ";
+      }
+    }
+    out << "]";
+    return out;
+  }
+    
+};
+
+Array test() {
+  return Array(5);
+}
+
+int main() {
+  Array x {5};
+  Array y = test();
+  std::cout << y << std::endl;
+  return 0;
+}
+#+end_src
+
+#+RESULTS:
+#+begin_example
+[1, 2, 3, 4, 5]
+#+end_example
+** When is a move constructor called?
+- A move constructor is implicitly called when a function returns a local object by value.
